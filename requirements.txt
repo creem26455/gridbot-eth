@@ -1,0 +1,2 @@
+python-okx>=0.1.9
+supabase>=2.0.0
