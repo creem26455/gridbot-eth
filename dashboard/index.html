@@ -169,7 +169,7 @@ function renderBotCards(rows){
   document.getElementById("bots-grid").innerHTML=BOT_CONFIG.map(cfg=>{
     const s=byLev[cfg.lev];
     if(!s)return '<div class="bot-card bot-offline"><div class="bot-header"><span class="bot-title">ETH/USDT</span><span class="lev-badge offline">'+cfg.label+'</span></div><div class="bot-state" style="color:var(--overlay)">⚪ ยังไม่เริ่ม</div><div class="bot-profit" style="color:var(--overlay)">—</div><div class="bot-pct" style="color:var(--overlay)">รอเปิดใช้งาน</div><div class="bot-rows"><div class="bot-row"><span class="bot-key">APR</span><span class="bot-val">—</span></div><div class="bot-row"><span class="bot-key">algo_state</span><span class="bot-val">—</span></div><div class="bot-row"><span class="bot-key">อัปเดต</span><span class="bot-val">—</span></div></div></div>';
-    const run=s.state==="running";
+    const run=s.is_running===true;
     const pf=s.profit_loss!=null?+s.profit_loss:null;
     const apr=s.total_annualized_rate!=null?+s.total_annualized_rate:null;
     const upd=s.updated_at?new Date(s.updated_at).toLocaleTimeString("th-TH",{hour12:false}):"—";
@@ -183,14 +183,14 @@ function updateSidebar(rows){
   [2,3,5].forEach(lev=>{
     const el=document.getElementById("sidebar-bot-"+lev+"x");if(!el)return;
     const s=byLev[lev];
-    const dc=!s?"pending":s.state==="running"?"running":"stopped";
+    const dc=!s?"pending":s.is_running===true?"running":"stopped";
     const pf=s?.profit_loss!=null?+s.profit_loss:null;
     const ps=pf!=null?'<span style="color:'+(pf>=0?"var(--green)":"var(--red)")+';margin-left:auto;font-size:0.7rem">'+(pf>=0?"+":"")+"$"+pf.toFixed(2)+"</span>":'<span style="color:var(--overlay);margin-left:auto;font-size:0.7rem">—</span>';
-    const st=!s?"ยังไม่เริ่ม":s.state==="running"?"กำลังทำงาน":"หยุด";
-    const stc=!s?"var(--overlay)":s.state==="running"?"var(--subtext)":"var(--overlay)";
+    const st=!s?"ยังไม่เริ่ม":s.is_running===true?"กำลังทำงาน":"หยุด";
+    const stc=!s?"var(--overlay)":s.is_running===true?"var(--subtext)":"var(--overlay)";
     el.innerHTML='<div class="sb-dot '+dc+'"></div><span class="sb-lev lev'+lev+'">'+lev+'x</span><span style="font-size:0.72rem;color:'+stc+'">'+st+"</span>"+ps;
   });
-  const rc=rows.filter(r=>r.state==="running").length;
+  const rc=rows.filter(r=>r.is_running===true).length;
   document.getElementById("running-count").textContent=rc+"/3 Bot กำลังทำงาน";
 }
 async function refresh(){
@@ -201,7 +201,7 @@ async function refresh(){
     const ld=latest?new Date(latest):null;
     document.getElementById("last-updated").textContent=ld?ld.toLocaleString("th-TH"):"—";
     const byLev={};rows.forEach(r=>{byLev[r.leverage]=r;});
-    document.getElementById("sb-running").textContent=rows.filter(r=>r.state==="running").length+"/3";
+    document.getElementById("sb-running").textContent=rows.filter(r=>r.is_running===true).length+"/3";
     const tp=rows.reduce((s,r)=>s+(r.profit_loss!=null?+r.profit_loss:0),0);
     document.getElementById("sb-total-profit").textContent=(tp>=0?"+":"")+"$"+tp.toFixed(4);
     [2,3,5].forEach(lev=>{const el=document.getElementById("sb-p"+lev);const s=byLev[lev];if(el)el.textContent=s?.profit_loss!=null?(+s.profit_loss>=0?"+":"")+"$"+(+s.profit_loss).toFixed(4):"—";});
