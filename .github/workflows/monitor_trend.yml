@@ -1,0 +1,129 @@
+name: Trend Bot Monitor & Control
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # รันทุก 10 นาที (monitor mode อัตโนมัติ)
+  workflow_dispatch:           # กดรันมือได้จาก GitHub
+    inputs:
+      leverage:
+        description: 'Leverage — เลือกบอทที่จะ control'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - '2'
+          - '3'
+          - '5'
+      mode:
+        description: 'Mode — start=เปิดบอท, monitor=เช็คสถานะ, stop=หยุดบอท'
+        required: true
+        default: 'monitor'
+        type: choice
+        options:
+          - 'monitor'
+          - 'start'
+          - 'stop'
+
+jobs:
+  # ─── AUTO MONITOR (cron every 10 min) ─────────────────────────────────────
+  auto-monitor:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    strategy:
+      matrix:
+        leverage: ['2', '3', '5']
+      fail-fast: false   # ถ้า leverage ใดพัง ไม่หยุด leverage อื่น
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Monitor Trend Bot (${{ matrix.leverage }}x)
+        env:
+          OKX_API_KEY:    ${{ secrets.OKX_API_KEY }}
+          OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
+          OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
+          OKX_FLAG:       ${{ secrets.OKX_FLAG }}
+          SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
+          MODE:           monitor
+          LEVERAGE:       ${{ matrix.leverage }}
+        run: python test_trend_bot.py
+
+  # ─── MANUAL CONTROL (workflow_dispatch) ───────────────────────────────────
+  manual-all:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.leverage == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    strategy:
+      matrix:
+        leverage: ['2', '3', '5']
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Trend Bot (${{ matrix.leverage }}x) — mode=${{ github.event.inputs.mode }}
+        env:
+          OKX_API_KEY:    ${{ secrets.OKX_API_KEY }}
+          OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
+          OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
+          OKX_FLAG:       ${{ secrets.OKX_FLAG }}
+          SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
+          MODE:           ${{ github.event.inputs.mode }}
+          LEVERAGE:       ${{ matrix.leverage }}
+        run: python test_trend_bot.py
+
+  manual-single:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.leverage != 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Trend Bot (${{ github.event.inputs.leverage }}x) — mode=${{ github.event.inputs.mode }}
+        env:
+          OKX_API_KEY:    ${{ secrets.OKX_API_KEY }}
+          OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
+          OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
+          OKX_FLAG:       ${{ secrets.OKX_FLAG }}
+          SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
+          MODE:           ${{ github.event.inputs.mode }}
+          LEVERAGE:       ${{ github.event.inputs.leverage }}
+        run: python test_trend_bot.py
