@@ -117,7 +117,7 @@ class DB:
             "capital":       TOTAL_CAPITAL,
             "algo_state":    state,
             "updated_at":    datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        }, on_conflict="bot_id").execute()
 
     def get_algo_id(self) -> str:
         """ดึง algo_id ล่าสุดจาก Supabase"""
