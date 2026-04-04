@@ -2,6 +2,28 @@ name: Start Grid Bot (Run Once)
 
 on:
   workflow_dispatch:
+    inputs:
+      leverage:
+        description: 'Leverage (เลือก 2x, 3x, หรือ 5x)'
+        required: true
+        default: '3'
+        type: choice
+        options:
+          - '2'
+          - '3'
+          - '5'
+      grid_upper:
+        description: 'Grid Upper Price (USDT)'
+        required: false
+        default: '2300'
+      grid_lower:
+        description: 'Grid Lower Price (USDT)'
+        required: false
+        default: '1800'
+      grid_count:
+        description: 'Number of Grids'
+        required: false
+        default: '25'
 
 jobs:
   start:
@@ -30,4 +52,8 @@ jobs:
           SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
           MODE:           start
+          LEVERAGE:       ${{ github.event.inputs.leverage }}
+          GRID_UPPER:     ${{ github.event.inputs.grid_upper }}
+          GRID_LOWER:     ${{ github.event.inputs.grid_lower }}
+          GRID_COUNT:     ${{ github.event.inputs.grid_count }}
         run: python grid_bot_eth_usdt.py
