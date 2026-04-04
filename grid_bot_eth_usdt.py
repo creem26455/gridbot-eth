@@ -24,7 +24,7 @@ import logging
 from datetime import datetime, timezone, date
 
 try:
-    import okx.GridTrading as GridTrading
+    import okx.Grid as GridTrading
     import okx.MarketData as MarketData
 except ImportError:
     print("❌ กรุณาติดตั้ง: pip install python-okx")
