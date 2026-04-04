@@ -1,0 +1,383 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+╔══════════════════════════════════════════════════════════════╗
+║      ETH/USDT Trend-Following Grid Bot v1                   ║
+║      Side-car Bot — ไม่กระทบ Grid Bot เดิม 100%            ║
+║      Strategy: EMA 50/200 Trailing Grid                     ║
+╚══════════════════════════════════════════════════════════════╝
+
+Flow:
+  MODE=start   → คำนวณ Trend → วาง Grid ตาม Trend (1 ครั้ง)
+  MODE=monitor → ดึงข้อมูล OKX → บันทึก Supabase (ทุก 10 นาที)
+  MODE=stop    → หยุด Grid (1 ครั้ง)
+
+Bot IDs: trend_v1_2x | trend_v1_3x | trend_v1_5x
+"""
+
+import os
+import sys
+import logging
+from datetime import datetime, timezone, date
+
+try:
+    import okx.Grid as Grid
+    import okx.MarketData as MarketData
+except ImportError:
+    print("❌ กรุณาติดตั้ง: pip install python-okx")
+    sys.exit(1)
+
+try:
+    from supabase import create_client, Client
+except ImportError:
+    print("❌ กรุณาติดตั้ง: pip install supabase")
+    sys.exit(1)
+
+from trend_logic import get_trend, get_trend_range
+
+
+# ============================================================
+#  ⚙️  CONFIGURATION
+# ============================================================
+API_KEY       = os.environ.get("OKX_API_KEY",    "YOUR_OKX_API_KEY")
+API_SECRET    = os.environ.get("OKX_API_SECRET",  "YOUR_OKX_SECRET")
+PASSPHRASE    = os.environ.get("OKX_PASSPHRASE",  "YOUR_PASSPHRASE")
+FLAG          = os.environ.get("OKX_FLAG",        "1")   # "1"=Demo "0"=Live
+
+SUPABASE_URL  = os.environ.get("SUPABASE_URL",    "YOUR_SUPABASE_URL")
+SUPABASE_KEY  = os.environ.get("SUPABASE_KEY",    "YOUR_SUPABASE_KEY")
+
+MODE          = os.environ.get("MODE", "monitor")   # start | monitor | stop
+LEVERAGE      = os.environ.get("LEVERAGE", "3")
+BOT_TAG       = "trend_v1"                          # แยกจาก grid bot เดิม
+
+INST_ID       = "ETH-USDT-SWAP"
+GRID_COUNT    = "25"
+RUN_TYPE      = "1"           # 1 = Arithmetic
+TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "1600"))
+
+# Stop Loss offset ตาม leverage (ยิ่ง leverage สูง SL ใกล้ขึ้น)
+SL_OFFSET = {"2": 0.12, "3": 0.10, "5": 0.08}
+
+
+# ============================================================
+#  📝  LOGGING
+# ============================================================
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("TrendBot")
+
+
+# ============================================================
+#  🗄️  SUPABASE — ใช้ตารางเดิม แต่ filter ด้วย bot_tag
+# ============================================================
+class DB:
+    def __init__(self):
+        self.client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    def save_trades(self, trades: list, algo_id: str):
+        if not trades:
+            return 0
+        rows = [{
+            "algo_id":    algo_id,
+            "order_id":   t.get("ordId", ""),
+            "inst_id":    INST_ID,
+            "side":       t.get("side", ""),
+            "price":      float(t.get("avgPx") or t.get("px") or 0),
+            "size":       float(t.get("sz", 0)),
+            "profit":     float(t.get("pnl", 0)),
+            "state":      t.get("state", ""),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        } for t in trades]
+        self.client.table("trades").upsert(rows, on_conflict="order_id").execute()
+        return len(rows)
+
+    def update_status(self, algo_id: str, state: str, price: float,
+                      profit: float, trade_count: int,
+                      grid_lower: float = 0.0, grid_upper: float = 0.0,
+                      trend: str = "UNKNOWN"):
+        pct = (profit / TOTAL_CAPITAL) * 100
+        self.client.table("bot_status").upsert({
+            "bot_id":        algo_id,
+            "bot_tag":       BOT_TAG,               # "trend_v1" — แยกจากบอทเดิม
+            "inst_id":       INST_ID,
+            "is_running":    state in ("running", "pause"),
+            "current_price": price,
+            "trade_count":   trade_count,
+            "total_profit":  profit,
+            "profit_pct":    round(pct, 6),
+            "grid_lower":    grid_lower,
+            "grid_upper":    grid_upper,
+            "leverage":      int(LEVERAGE),
+            "capital":       TOTAL_CAPITAL,
+            "algo_state":    state,
+            "algo_tag":      trend,                 # เก็บ trend ล่าสุดไว้ด้วย
+            "updated_at":    datetime.now(timezone.utc).isoformat(),
+        }, on_conflict="bot_id").execute()
+
+    def get_algo_id(self) -> str:
+        """ดึง algo_id ของ trend bot จาก Supabase (กรองด้วย bot_tag + leverage)"""
+        res = self.client.table("bot_status") \
+                  .select("bot_id") \
+                  .eq("bot_tag", BOT_TAG) \
+                  .eq("leverage", int(LEVERAGE)) \
+                  .order("updated_at", desc=True) \
+                  .limit(1).execute()
+        if res.data:
+            return res.data[0]["bot_id"]
+        return ""
+
+    def get_total_profit(self, algo_id: str) -> tuple:
+        res = self.client.table("trades") \
+                  .select("profit") \
+                  .eq("algo_id", algo_id).execute()
+        trades = res.data or []
+        total  = sum(float(t["profit"]) for t in trades)
+        return total, len(trades)
+
+    def save_daily_pnl(self, algo_id: str, pnl: float, trade_count: int):
+      2 today = date.today().isoformat()
+        self.client.table("pnl_daily").upsert({
+            "bot_id":      algo_id,
+            "date":        today,
+            "pnl":         pnl,
+            "trade_count": trade_count,
+            "updated_at":  datetime.now(timezone.utc).isoformat(),
+        }).execute()
+
+
+# ============================================================
+#  🤖  TREND GRID MANAGER
+# ============================================================
+class TrendGridManager:
+    def __init__(self):
+        self.grid_api   = Grid.GridAPI(API_KEY, API_SECRET, PASSPHRASE, flag=FLAG)
+        self.market_api = MarketData.MarketAPI(flag=FLAG)
+        self.db         = DB()
+
+    def get_price(self) -> float:
+        try:
+            res = self.market_api.get_ticker(instId=INST_ID)
+            if res["code"] == "0":
+                return float(res["data"][0]["last"])
+        except Exception as e:
+            log.error(f"get_price: {e}")
+        return 0.0
+
+    def get_running_algo_id(self) -> str:
+        """
+        หา algo_id ที่รันอยู่บน OKX
+        ใช้ known_id จาก Supabase เป็นหลัก เพื่อไม่ปนกับ Grid Bot เดิม
+        """
+        try:
+            known_id = self.db.get_algo_id()
+            res = self.grid_api.grid_orders_algo_pending(
+                algoOrdType="contract_grid", instId=INST_ID)
+            if res["code"] == "0" and res["data"]:
+                for algo in res["data"]:
+                    # ถ้ารู้ algo_id อยู่แล้ว → match ตรงๆ (แม่นยำ 100%)
+                    if known_id and algo["algoId"] == known_id:
+                        return algo["algoId"]
+                    # Fallback: ถ้ายังไม่มี known_id ใช้ leverage
+                    if not known_id and str(algo.get("lever", "")) == str(LEVERAGE):
+                        return algo["algoId"]
+        except Exception as e:
+            log.error(f"get_running_algo_id: {e}")
+        return ""
+
+    # ── MODE: start ──────────────────────────────────────────
+    def cmd_start(self):
+        log.info("=" * 60)
+        log.info(f"  🚀 TREND BOT {LEVERAGE}x — MODE: START")
+        log.info(f"  Capital: ${TOTAL_CAPITAL} | {'🧪 DEMO' if FLAG == '1' else '🔴 LIVE'}")
+        log.info("=" * 60)
+
+        # เช็คว่ามี Grid รันอยู่แล้วหรือยัง
+        existing = self.get_running_algo_id()
+        if existing:
+            log.warning(f"⚠️  Trend Grid {LEVERAGE}x รันอยู่แล้ว: {existing}")
+            log.warning("   ถ้าต้องการเปิดใหม่ ให้รัน MODE=stop ก่อน")
+            return
+
+        # คำนวณ Trend จาก EMA 50/200 (ข้อมูล 210 ชั่วโมงย้อนหลัง)
+        trend, ema50, ema200, price = get_trend(self.market_api, INST_ID)
+
+        if trend == "UNKNOWN":
+            log.error("❌ คำนวณ Trend ไม่ได้ — ข้ามการเปิด Grid")
+            return
+
+        if price == 0:
+            log.error("❌ ดึงราคาไม่ได้")
+            sys.exit(1)
+
+        # Trend DOWN → ไม่เปิด Grid ในรอบนี้
+        if trend == "DOWN":
+            log.warning("🔴 Trend DOWN — ไม่เปิด Grid รอบนี้")
+            log.warning(f"   EMA50 (${ema50:,.2f}) < EMA200 (${ema200:,.2f})")
+            log.warning("   Monitor จะเช็คใหม่ใน 10 นาที")
+            return
+
+        # Trend UP → คำนวณ Range แบบ Trailing
+        grid_lower, grid_upper = get_trend_range(price, trend)
+        sl_offset = SL_OFFSET.get(str(LEVERAGE), 0.10)
+        stop_loss = str(int(float(grid_lower) * (1 - sl_offset)))
+
+        log.info(f"🟢 Trend UP | EMA50: ${ema50:,.2f} > EMA200: ${ema200:,.2f}")
+        log.info(f"   Price: ${price:,.2f} | Range: ${grid_lower}–${grid_upper}")
+        log.info(f"   Stop Loss: ${stop_loss} ({int(sl_offset*100)}% ต่ำกว่า lower)")
+
+        # ตรวจสอบราคาอยู่ใน range
+        if not (float(grid_lower) < price < float(grid_upper)):
+            log.error(f"❌ ราคา ${price:,.2f} อยู่นอก range")
+            return
+
+        # สั่ง OKX เปิด Grid
+        params = {
+            "instId":      INST_ID,
+            "algoOrdType": "contract_grid",
+            "maxPx":       grid_upper,
+            "minPx":       grid_lower,
+            "gridNum":     GRID_COUNT,
+            "runType":     RUN_TYPE,
+            "direction":   "long",
+            "lever":       LEVERAGE,
+            "sz":          str(int(TOTAL_CAPITAL)),
+            "slTriggerPx": stop_loss,
+        }
+
+        try:
+            res = self.grid_api.grid_order_algo(**params)
+            if res["code"] == "0":
+                algo_id = res["data"][0]["algoId"]
+                log.info(f"✅ Trend Grid เปิดสำเร็จ! Algo ID: {algo_id}")
+                self.db.update_status(
+                    algo_id, "running", price, 0.0, 0,
+                    float(grid_lower), float(grid_upper), trend
+                )
+            else:
+                log.error(f"❌ เปิด Grid ไม่ได้: {res}")
+                sys.exit(1)
+        except Exception as e:
+            log.error(f"cmd_start error: {e}")
+            sys.exit(1)
+
+    # ── MODE: monitor ────────────────────────────────────────
+    def cmd_monitor(self):
+        log.info(f"📡 TREND MONITOR {LEVERAGE}x — {datetime.now().strftime('%H:%M:%S')}")
+
+        algo_id = self.get_running_algo_id()
+        if not algo_id:
+            algo_id = self.db.get_algo_id()
+        if not algo_id:
+            log.warning("⚠️  ไม่พบ Trend Grid — รัน MODE=start ก่อน")
+            return
+
+        # ดึงสถานะจาก OKX
+        state = "running"
+        grid_lower = 0.0
+        grid_upper = 0.0
+        try:
+            res = self.grid_api.grid_orders_algo_pending(
+                algoOrdType="contract_grid", instId=INST_ID)
+            if res["code"] == "0":
+                found = next((d for d in res["data"]
+                              if d["algoId"] == algo_id), None)
+                if found:
+                    state      = found.get("state", "running")
+                    grid_lower = float(found.get("minPx", 0))
+                    grid_upper = float(found.get("maxPx", 0))
+                else:
+                    state = "stopped"
+        except Exception as e:
+            log.error(f"get state error: {e}")
+
+        price = self.get_price()
+
+        # ดึง trades ใหม่
+        new_trades = []
+        try:
+            res = self.grid_api.grid_sub_orders(
+                algoId=algo_id,
+                algoOrdType="contract_grid",
+                type="filled"
+            )
+            if res["code"] == "0":
+                new_trades = res.get("data", [])
+        except Exception as e:
+            log.error(f"get sub_orders error: {e}")
+
+        saved = self.db.save_trades(new_trades, algo_id)
+        if saved:
+            log.info(f"  💾 บันทึก {saved} trades ใหม่")
+
+        total_profit, trade_count = self.db.get_total_profit(algo_id)
+
+        # ดึง Trend ล่าสุดเพื่อ log + บันทึก
+        trend, ema50, ema200, _ = get_trend(self.market_api, INST_ID)
+
+        self.db.update_status(
+            algo_id, state, price, total_profit, trade_count,
+            grid_lower, grid_upper, trend
+        )
+        self.db.save_daily_pnl(algo_id, total_profit, trade_count)
+
+        pct = (total_profit / TOTAL_CAPITAL) * 100
+        log.info(f"  💲 ETH: ${price:,.2f} | State: {state}")
+        log.info(f"  📊 Trend: {trend} | EMA50: ${ema50:,.2f} | EMA200: ${ema200:,.2f}")
+        log.info(f"  💵 PnL: ${total_profit:.4f} ({pct:.4f}%) | Trades: {trade_count}")
+        log.info("  ✅ Trend Monitor เสร็จ")
+
+    # ── MODE: stop ───────────────────────────────────────────
+    def cmd_stop(self):
+        log.info(f"⛔ TREND BOT {LEVERAGE}x — MODE: STOP")
+
+        algo_id = self.get_running_algo_id()
+        if not algo_id:
+            algo_id = self.db.get_algo_id()
+        if not algo_id:
+            log.warning("⚠️  ไม่พบ Trend Grid ที่รันอยู่")
+            return
+
+        try:
+            res = self.grid_api.grid_stop_order_algo(
+                algoId=algo_id,
+                instId=INST_ID,
+                algoOrdType="contract_grid",
+                stopType="1"
+            )
+            if res["code"] == "0":
+                log.info(f"✅ หยุด Trend Grid สำเร็จ | Algo ID: {algo_id}")
+                self.db.update_status(
+                    algo_id, "stopped", self.get_price(), 0.0, 0
+                )
+            else:
+                log.error(f"❌ หยุดไม่ได้: {res}")
+        except Exception as e:
+            log.error(f"cmd_stop error: {e}")
+
+
+# ============================================================
+#  🚀  ENTRY POINT
+# ============================================================
+def main():
+    log.info(f"🤖 Trend Grid Bot {LEVERAGE}x | Mode: {MODE.upper()} | "
+             f"{'🧪 DEMO' if FLAG == '1' else '🔴 LIVE'}")
+
+    bot = TrendGridManager()
+
+    if MODE == "start":
+        bot.cmd_start()
+    elif MODE == "monitor":
+        bot.cmd_monitor()
+    elif MODE == "stop":
+        bot.cmd_stop()
+    else:
+        log.error(f"❌ MODE ไม่ถูกต้อง: '{MODE}' (start | monitor | stop)")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
