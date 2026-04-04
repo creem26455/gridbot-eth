@@ -477,18 +477,35 @@ async function fetchCryptoData(coinId, days) {
 
 async function fetchYFinanceData(symbol, days) {
   const range = days <= 30 ? '1mo' : days <= 90 ? '3mo' : days <= 180 ? '6mo' : days <= 365 ? '1y' : '2y';
-  const interval = days <= 30 ? '1d' : '1d';
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&events=history`;
-  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  if (!res.ok) throw new Error(`Yahoo Finance error ${res.status} for ${symbol}`);
-  const json = await res.json();
-  const result = json.chart.result[0];
-  const timestamps = result.timestamp;
-  const closes = result.indicators.quote[0].close;
-  return timestamps.map((ts, i) => ({
-    date: new Date(ts * 1000),
-    price: closes[i]
-  })).filter(d => d.price != null);
+  const yfPath = `/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=1d&events=history`;
+
+  // 3-layer fallback: query1 → query2 → corsproxy
+  const endpoints = [
+    `https://query1.finance.yahoo.com${yfPath}`,
+    `https://query2.finance.yahoo.com${yfPath}`,
+    `https://corsproxy.io/?${encodeURIComponent('https://query1.finance.yahoo.com' + yfPath)}`
+  ];
+
+  let lastErr = null;
+  for (const url of endpoints) {
+    try {
+      setProgress(20, `Trying ${url.includes('corsproxy') ? 'proxy' : 'direct'}...`);
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
+      const json = await res.json();
+      const result = json.chart?.result?.[0];
+      if (!result) { lastErr = new Error('No data returned'); continue; }
+      const timestamps = result.timestamp;
+      const closes = result.indicators.quote[0].close;
+      return timestamps.map((ts, i) => ({
+        date: new Date(ts * 1000),
+        price: closes[i]
+      })).filter(d => d.price != null && !isNaN(d.price));
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw new Error(`\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e14\u0e36\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25 ${symbol} \u0e44\u0e14\u0e49 (${lastErr?.message}) — \u0e25\u0e2d\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07`);
 }
 
 async function fetchData() {
