@@ -3,758 +3,230 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GridBot Pro &#8212; ETH/USDT Dashboard</title>
+  <title>GridBot Pro — ETH/USDT Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
-    /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
-       Catppuccin Mocha &#8212; Design 3&#215;6
-    &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
     :root {
-      --base:    #1e1e2e;
-      --mantle:  #181825;
-      --crust:   #11111b;
-      --surf0:   #313244;
-      --surf1:   #45475a;
-      --overlay: #6c7086;
-      --subtext: #a6adc8;
-      --text:    #cdd6f4;
-      --blue:    #89b4fa;
-      --green:   #a6e3a1;
-      --yellow:  #f9e2af;
-      --mauve:   #cba6f7;
-      --red:     #f38ba8;
-      --teal:    #89dceb;
-      --peach:   #fab387;
+      --base:    #1e1e2e; --mantle:  #181825; --crust:   #11111b;
+      --surf0:   #313244; --surf1:   #45475a; --overlay: #6c7086;
+      --subtext: #a6adc8; --text:    #cdd6f4; --blue:    #89b4fa;
+      --green:   #a6e3a1; --yellow:  #f9e2af; --mauve:   #cba6f7;
+      --red:     #f38ba8; --teal:    #89dceb; --peach:   #fab387;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
-
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--base);
-      color: var(--text);
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* &#9552;&#9552; SIDEBAR &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-    .sidebar {
-      width: 240px;
-      min-width: 240px;
-      background: var(--mantle);
-      display: flex;
-      flex-direction: column;
-      padding: 0;
-      border-right: 1px solid var(--surf0);
-      overflow: hidden;
-    }
-
-    .sidebar-logo {
-      padding: 24px 20px 16px;
-      border-bottom: 1px solid var(--surf0);
-    }
-    .sidebar-logo h1 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-    .sidebar-logo p {
-      font-size: 0.75rem;
-      color: var(--overlay);
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 12px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      color: var(--overlay);
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-      border-left: 3px solid transparent;
-      text-decoration: none;
-    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--base); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 240px; min-width: 240px; background: var(--mantle); display: flex; flex-direction: column; border-right: 1px solid var(--surf0); overflow: hidden; }
+    .sidebar-logo { padding: 24px 20px 16px; border-bottom: 1px solid var(--surf0); }
+    .sidebar-logo h1 { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+    .sidebar-logo p { font-size: 0.75rem; color: var(--overlay); }
+    .sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; color: var(--overlay); cursor: pointer; transition: background 0.15s, color 0.15s; border-left: 3px solid transparent; text-decoration: none; }
     .nav-item:hover { background: var(--surf0); color: var(--subtext); }
-    .nav-item.active {
-      background: var(--surf0);
-      color: var(--blue);
-      border-left-color: var(--blue);
-      font-weight: 600;
-    }
+    .nav-item.active { background: var(--surf0); color: var(--blue); border-left-color: var(--blue); font-weight: 600; }
     .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
-
-    .sidebar-footer {
-      padding: 16px 20px;
-      border-top: 1px solid var(--surf0);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .sidebar-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.78rem;
-    }
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      flex-shrink: 0;
-    }
-    .status-dot.offline { background: var(--red); }
-    .status-dot.pulse { animation: pulse 2s infinite; }
-    @keyframes pulse {
-      0%,100% { opacity:1; } 50% { opacity:.35; }
-    }
-    .mode-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surf0);
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--yellow);
-    }
-
-    /* &#9552;&#9552; MAIN CONTENT &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* Top bar */
-    .topbar {
-      background: var(--mantle);
-      border-bottom: 1px solid var(--surf0);
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-    .topbar-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .topbar-update {
-      font-size: 0.78rem;
-      color: var(--overlay);
-    }
-    .refresh-btn {
-      background: var(--surf0);
-      border: none;
-      border-radius: 8px;
-      padding: 6px 14px;
-      font-size: 0.78rem;
-      color: var(--subtext);
-      cursor: pointer;
-      transition: background 0.15s;
-    }
+    .sidebar-bots { padding: 10px 10px 4px; border-top: 1px solid var(--surf0); }
+    .sidebar-bots-label { font-size: 0.65rem; color: var(--overlay); text-transform: uppercase; letter-spacing: 0.08em; padding: 0 4px; margin-bottom: 6px; }
+    .sidebar-bot-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-size: 0.78rem; }
+    .sb-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .sb-dot.running { background: var(--green); animation: pulse 2s infinite; }
+    .sb-dot.stopped { background: var(--red); }
+    .sb-dot.pending { background: var(--overlay); }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+    .sb-lev { font-weight: 700; }
+    .sb-lev.lev2 { color: var(--teal); } .sb-lev.lev3 { color: var(--blue); } .sb-lev.lev5 { color: var(--mauve); }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid var(--surf0); display: flex; flex-direction: column; gap: 8px; }
+    .mode-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--surf0); border-radius: 6px; padding: 5px 10px; font-size: 0.75rem; font-weight: 600; color: var(--yellow); }
+    .running-count { font-size: 0.72rem; color: var(--subtext); }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { background: var(--mantle); border-bottom: 1px solid var(--surf0); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .topbar-title { font-size: 1.3rem; font-weight: 700; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .topbar-update { font-size: 0.78rem; color: var(--overlay); }
+    .refresh-btn { background: var(--surf0); border: none; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem; color: var(--subtext); cursor: pointer; }
     .refresh-btn:hover { background: var(--surf1); color: var(--text); }
-
-    /* Scrollable content area */
-    .content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 24px 24px;
-    }
+    .content { flex: 1; overflow-y: auto; padding: 20px 24px 24px; }
     .content::-webkit-scrollbar { width: 6px; }
-    .content::-webkit-scrollbar-track { background: transparent; }
     .content::-webkit-scrollbar-thumb { background: var(--surf1); border-radius: 3px; }
-
-    /* &#9552;&#9552; KPI CARDS &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .kpi-card {
-      background: var(--surf0);
-      border-radius: 12px;
-      padding: 18px 18px 14px;
-      position: relative;
-      overflow: hidden;
-      border-left: 4px solid transparent;
-      transition: transform 0.15s;
-    }
-    .kpi-card:hover { transform: translateY(-2px); }
-    .kpi-card.blue   { border-left-color: var(--blue); }
-    .kpi-card.green  { border-left-color: var(--green); }
-    .kpi-card.yellow { border-left-color: var(--yellow); }
-    .kpi-card.mauve  { border-left-color: var(--mauve); }
-    .kpi-card.teal   { border-left-color: var(--teal); }
-
-    .kpi-label {
-      font-size: 0.72rem;
-      color: var(--subtext);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 8px;
-    }
-    .kpi-value {
-      font-size: 1.55rem;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1.2;
-      margin-bottom: 6px;
-    }
-    .kpi-value.blue   { color: var(--blue); }
-    .kpi-value.green  { color: var(--green); }
-    .kpi-value.yellow { color: var(--yellow); }
-    .kpi-value.mauve  { color: var(--mauve); }
-    .kpi-sub {
-      font-size: 0.75rem;
-      color: var(--overlay);
-    }
-    .kpi-sub.green  { color: var(--green); }
-    .kpi-sub.yellow { color: var(--yellow); }
-
-    /* &#9552;&#9552; CHART + TABLE ROW &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-    .mid-row {
-      display: grid;
-      grid-template-columns: 3fr 2fr;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .panel {
-      background: var(--surf0);
-      border-radius: 12px;
-      padding: 18px;
-    }
-    .panel-title {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--subtext);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .panel-title-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--blue);
-    }
-
+    .bots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .bot-card { background: var(--surf0); border-radius: 12px; padding: 18px; border-left: 4px solid var(--surf1); transition: transform 0.15s; }
+    .bot-card:hover { transform: translateY(-2px); }
+    .bot-card.lev2 { border-left-color: var(--teal); } .bot-card.lev3 { border-left-color: var(--blue); } .bot-card.lev5 { border-left-color: var(--mauve); }
+    .bot-card.bot-offline { opacity: 0.55; border-left-color: var(--surf1); }
+    .bot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .bot-title { font-size: 0.8rem; color: var(--subtext); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .lev-badge { font-size: 0.72rem; font-weight: 700; padding: 3px 9px; border-radius: 6px; }
+    .lev-badge.lev2 { background: rgba(137,220,235,.15); color: var(--teal); }
+    .lev-badge.lev3 { background: rgba(137,180,250,.15); color: var(--blue); }
+    .lev-badge.lev5 { background: rgba(203,166,247,.15); color: var(--mauve); }
+    .lev-badge.offline { background: rgba(108,112,134,.1); color: var(--overlay); }
+    .bot-state { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .bot-profit { font-size: 1.45rem; font-weight: 700; margin-bottom: 4px; }
+    .bot-pct { font-size: 0.78rem; margin-bottom: 10px; }
+    .bot-rows { display: flex; flex-direction: column; gap: 4px; }
+    .bot-row { display: flex; justify-content: space-between; align-items: center; }
+    .bot-key { font-size: 0.7rem; color: var(--overlay); text-transform: uppercase; letter-spacing: 0.04em; }
+    .bot-val { font-size: 0.78rem; color: var(--subtext); font-weight: 600; font-family: monospace; }
+    .mid-row { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; margin-bottom: 16px; }
+    .panel { background: var(--surf0); border-radius: 12px; padding: 18px; }
+    .panel-title { font-size: 0.82rem; font-weight: 600; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .panel-title-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
     .chart-wrap { position: relative; height: 210px; }
-
-    /* &#9552;&#9552; TRADES TABLE &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-    .trades-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.82rem;
-    }
-    .trades-table th {
-      color: var(--overlay);
-      text-align: left;
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--surf1);
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 600;
-    }
-    .trades-table td {
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--mantle);
-      color: var(--subtext);
-    }
+    .trades-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .trades-table th { color: var(--overlay); text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--surf1); font-size: 0.7rem; text-transform: uppercase; font-weight: 600; }
+    .trades-table td { padding: 8px 10px; border-bottom: 1px solid var(--mantle); color: var(--subtext); }
     .trades-table tr:last-child td { border-bottom: none; }
     .trades-table tbody tr:hover td { background: var(--mantle); }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 5px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-    }
-    .badge.buy  { background: rgba(166,227,161,.15); color: var(--green); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 0.7rem; font-weight: 700; }
+    .badge.buy { background: rgba(166,227,161,.15); color: var(--green); }
     .badge.sell { background: rgba(243,139,168,.15); color: var(--red); }
-
-    /* &#9552;&#9552; BOTTOM PARAM CARDS &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-    .param-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .param-card {
-      background: var(--surf0);
-      border-radius: 12px;
-      padding: 14px 16px;
-      border-top: 3px solid transparent;
-    }
-    .param-card.teal   { border-top-color: var(--teal); }
-    .param-card.peach  { border-top-color: var(--peach); }
-    .param-card.mauve  { border-top-color: var(--mauve); }
-    .param-card.blue   { border-top-color: var(--blue); }
-    .param-label {
-      font-size: 0.72rem;
-      color: var(--overlay);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 6px;
-    }
-    .param-value {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    /* &#9552;&#9552; STATUS BAR &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-    .status-bar {
-      background: var(--surf0);
-      border-radius: 12px;
-      padding: 12px 18px;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px 20px;
-      font-size: 0.75rem;
-    }
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .summary-bar { background: var(--surf0); border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 20px; font-size: 0.75rem; }
+    .status-item { display: flex; align-items: center; gap: 6px; }
     .status-key { color: var(--overlay); }
-    .status-val { color: var(--text); font-weight: 600; font-family: 'Cascadia Code', 'Consolas', monospace; }
-    .status-val.green  { color: var(--green); }
-    .status-val.yellow { color: var(--yellow); }
-    .status-val.mauve  { color: var(--mauve); }
-    .status-val.teal   { color: var(--teal); }
+    .status-val { color: var(--text); font-weight: 600; font-family: monospace; }
+    .status-val.green { color: var(--green); } .status-val.yellow { color: var(--yellow); }
+    .status-val.teal { color: var(--teal); } .status-val.mauve { color: var(--mauve); }
     .status-sep { color: var(--surf1); }
-
-    /* &#9552;&#9552; EMPTY / LOADING &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-    .empty-row td {
-      text-align: center;
-      color: var(--overlay);
-      padding: 20px !important;
-      font-size: 0.82rem;
-    }
+    .empty-row td { text-align: center; color: var(--overlay); padding: 20px !important; font-size: 0.82rem; }
   </style>
 </head>
 <body>
-
-<!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
-     SIDEBAR
-&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
 <aside class="sidebar">
-  <div class="sidebar-logo">
-    <h1>&#129302; GridBot Pro</h1>
-    <p>ETH/USDT Dashboard</p>
-  </div>
-
+  <div class="sidebar-logo"><h1>&#129302; GridBot Pro</h1><p>ETH/USDT · Multi-Bot</p></div>
   <nav class="sidebar-nav">
-    <a class="nav-item active" href="#">
-      <span class="nav-icon">&#128202;</span> Overview
-    </a>
-    <a class="nav-item" href="#" onclick="return false">
-      <span class="nav-icon">&#128200;</span> Analytics
-    </a>
-    <a class="nav-item" href="#" onclick="return false">
-      <span class="nav-icon">&#9889;</span> Bot Control
-    </a>
-    <a class="nav-item" href="#" onclick="return false">
-      <span class="nav-icon">&#128276;</span> Alerts
-    </a>
-    <a class="nav-item" href="#" onclick="return false">
-      <span class="nav-icon">&#9881;&#65039;</span> Settings
-    </a>
-    <a class="nav-item" href="./backtest.html" style="margin-top:8px;border-top:1px solid var(--surf0);padding-top:14px;">
-      <span class="nav-icon">&#128202;</span> Backtest
-    </a>
+    <a class="nav-item active" href="#"><span class="nav-icon">&#128202;</span> Overview</a>
+    <a class="nav-item" href="#" onclick="return false"><span class="nav-icon">&#128200;</span> Analytics</a>
+    <a class="nav-item" href="#" onclick="return false"><span class="nav-icon">&#9889;</span> Bot Control</a>
+    <a class="nav-item" href="#" onclick="return false"><span class="nav-icon">&#128276;</span> Alerts</a>
+    <a class="nav-item" href="./backtest.html" style="margin-top:8px;border-top:1px solid var(--surf0);padding-top:14px;"><span class="nav-icon">&#128202;</span> Backtest</a>
   </nav>
-
+  <div class="sidebar-bots">
+    <div class="sidebar-bots-label">Bot Status</div>
+    <div id="sidebar-bot-2x" class="sidebar-bot-item"><div class="sb-dot pending"></div><span class="sb-lev lev2">2x</span><span style="font-size:0.72rem;color:var(--overlay)">Loading...</span></div>
+    <div id="sidebar-bot-3x" class="sidebar-bot-item"><div class="sb-dot pending"></div><span class="sb-lev lev3">3x</span><span style="font-size:0.72rem;color:var(--overlay)">Loading...</span></div>
+    <div id="sidebar-bot-5x" class="sidebar-bot-item"><div class="sb-dot pending"></div><span class="sb-lev lev5">5x</span><span style="font-size:0.72rem;color:var(--overlay)">Loading...</span></div>
+  </div>
   <div class="sidebar-footer">
-    <div class="sidebar-status">
-      <div class="status-dot pulse" id="sidebar-dot"></div>
-      <span id="sidebar-status-text" style="font-size:0.8rem;color:var(--subtext)">&#3585;&#3635;&#3621;&#3633;&#3591;&#3650;&#3627;&#3621;&#3604;...</span>
-    </div>
+    <div class="running-count" id="running-count">Loading...</div>
     <div class="mode-badge">&#127918; Demo Mode</div>
   </div>
 </aside>
-
-<!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
-     MAIN
-&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
 <div class="main">
-
-  <!-- Top Bar -->
   <div class="topbar">
-    <div class="topbar-title">Overview</div>
+    <div class="topbar-title">Overview · 3 Bots</div>
     <div class="topbar-right">
-      <span class="topbar-update">&#3629;&#3633;&#3611;&#3648;&#3604;&#3605;&#3607;&#3640;&#3585; 30 &#3623;&#3636; &nbsp;|&nbsp; <span id="last-updated">&#3585;&#3635;&#3621;&#3633;&#3591;&#3650;&#3627;&#3621;&#3604;...</span></span>
+      <span class="topbar-update">อัปเดตทุก 30 วิ &nbsp;|&nbsp; <span id="last-updated">กำลังโหลด...</span></span>
       <button class="refresh-btn" onclick="refresh()">&#10227; Refresh</button>
     </div>
   </div>
-
-  <!-- Scrollable Content -->
   <div class="content">
-
-    <!-- KPI Cards -->
-    <div class="kpi-grid">
-      <div class="kpi-card blue">
-        <div class="kpi-label">&#3626;&#3606;&#3634;&#3609;&#3632; Bot</div>
-        <div class="kpi-value blue" id="kpi-status">&#8212;</div>
-        <div class="kpi-sub" id="kpi-state">algo_state: &#8212;</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-label">&#3585;&#3635;&#3652;&#3619;&#3626;&#3632;&#3626;&#3617; (USD)</div>
-        <div class="kpi-value green" id="kpi-profit">&#8212;</div>
-        <div class="kpi-sub green" id="kpi-profit-pct">&#8212;% &#3586;&#3629;&#3591;&#3607;&#3640;&#3609;</div>
-      </div>
-      <div class="kpi-card yellow">
-        <div class="kpi-label">&#3612;&#3621;&#3605;&#3629;&#3610;&#3649;&#3607;&#3609;&#3605;&#3656;&#3629;&#3611;&#3637; (APR)</div>
-        <div class="kpi-value yellow" id="kpi-apr">&#8212;</div>
-        <div class="kpi-sub">Annualized Rate</div>
-      </div>
-      <div class="kpi-card mauve">
-        <div class="kpi-label">&#3629;&#3633;&#3611;&#3648;&#3604;&#3605;&#3621;&#3656;&#3634;&#3626;&#3640;&#3604;</div>
-        <div class="kpi-value" style="font-size:1.1rem" id="kpi-updated">&#8212;</div>
-        <div class="kpi-sub" id="kpi-leverage">Leverage 3x | &#3607;&#3640;&#3609; $1,690</div>
-      </div>
-    </div>
-
-    <!-- Chart + Trades -->
+    <div class="bots-grid" id="bots-grid"></div>
     <div class="mid-row">
-
-      <!-- PnL Chart -->
       <div class="panel">
-        <div class="panel-title">
-          <div class="panel-title-dot"></div>
-          PnL &#3619;&#3634;&#3618;&#3623;&#3633;&#3609; (USD)
-        </div>
-        <div class="chart-wrap">
-          <canvas id="pnl-chart"></canvas>
-        </div>
+        <div class="panel-title"><div class="panel-title-dot"></div>PnL รายวัน รวมทุก Bot (USD)</div>
+        <div class="chart-wrap"><canvas id="pnl-chart"></canvas></div>
       </div>
-
-      <!-- Recent Trades -->
       <div class="panel">
-        <div class="panel-title">
-          <div class="panel-title-dot" style="background:var(--green)"></div>
-          &#3648;&#3607;&#3619;&#3604;&#3621;&#3656;&#3634;&#3626;&#3640;&#3604;
-        </div>
-        <div style="overflow-y:auto; max-height:225px;">
+        <div class="panel-title"><div class="panel-title-dot" style="background:var(--green)"></div>เทรดล่าสุด (ทุก Bot)</div>
+        <div style="overflow-y:auto;max-height:225px;">
           <table class="trades-table">
-            <thead>
-              <tr>
-                <th>&#3648;&#3623;&#3621;&#3634;</th>
-                <th>&#3607;&#3636;&#3624;&#3607;&#3634;&#3591;</th>
-                <th>&#3619;&#3634;&#3588;&#3634;</th>
-                <th>&#3585;&#3635;&#3652;&#3619;</th>
-              </tr>
-            </thead>
-            <tbody id="trades-tbody">
-              <tr class="empty-row"><td colspan="4">&#3585;&#3635;&#3621;&#3633;&#3591;&#3650;&#3627;&#3621;&#3604;...</td></tr>
-            </tbody>
+            <thead><tr><th>เวลา</th><th>ทิศทาง</th><th>ราคา</th><th>กำไร</th></tr></thead>
+            <tbody id="trades-tbody"><tr class="empty-row"><td colspan="4">กำลังโหลด...</td></tr></tbody>
           </table>
         </div>
       </div>
-
     </div>
-
-    <!-- Parameter Cards -->
-    <div class="param-grid">
-      <div class="param-card teal">
-        <div class="param-label">&#3607;&#3640;&#3609;&#3607;&#3633;&#3657;&#3591;&#3627;&#3617;&#3604;</div>
-        <div class="param-value">$1,690 USD</div>
-      </div>
-      <div class="param-card peach">
-        <div class="param-label">Leverage</div>
-        <div class="param-value">3x Cross Margin</div>
-      </div>
-      <div class="param-card mauve">
-        <div class="param-label">Grid Range</div>
-        <div class="param-value" id="param-range">$1,800 &#8211; $2,300</div>
-      </div>
-      <div class="param-card blue">
-        <div class="param-label">&#3592;&#3635;&#3609;&#3623;&#3609; Grid</div>
-        <div class="param-value" id="param-grids">25 levels</div>
-      </div>
+    <div class="summary-bar">
+      <div class="status-item"><span class="status-key">bots_running:</span><span class="status-val green" id="sb-running">—</span></div>
+      <span class="status-sep">|</span>
+      <div class="status-item"><span class="status-key">total_profit:</span><span class="status-val green" id="sb-total-profit">—</span></div>
+      <span class="status-sep">|</span>
+      <div class="status-item"><span class="status-key">2x profit:</span><span class="status-val teal" id="sb-p2">—</span></div>
+      <span class="status-sep">|</span>
+      <div class="status-item"><span class="status-key">3x profit:</span><span class="status-val" style="color:var(--blue)" id="sb-p3">—</span></div>
+      <span class="status-sep">|</span>
+      <div class="status-item"><span class="status-key">5x profit:</span><span class="status-val mauve" id="sb-p5">—</span></div>
+      <span class="status-sep">|</span>
+      <div class="status-item"><span class="status-key">updated:</span><span class="status-val teal" id="sb-updated">—</span></div>
     </div>
-
-    <!-- Status Bar -->
-    <div class="status-bar">
-      <div class="status-item">
-        <span class="status-key">profit_loss:</span>
-        <span class="status-val green" id="sb-profit">&#8212;</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">total_annualized_rate:</span>
-        <span class="status-val mauve" id="sb-apr">&#8212;</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">algo_state:</span>
-        <span class="status-val green" id="sb-algostate">&#8212;</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">grid_num:</span>
-        <span class="status-val" id="sb-gridnum">&#8212;</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">state:</span>
-        <span class="status-val green" id="sb-state">&#8212;</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">updated_at:</span>
-        <span class="status-val teal" id="sb-updated">&#8212;</span>
-      </div>
-    </div>
-
-  </div><!-- /content -->
-</div><!-- /main -->
-
+  </div>
+</div>
 <script>
-// ============================================================
-//  CONFIG
-// ============================================================
-const SUPABASE_URL = "https://tgrmivymsesqpdrsludq.supabase.co";
-const SUPABASE_KEY = "sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG";
-const CAPITAL      = 1690;
-const GRID_LOWER   = 1800;
-const GRID_UPPER   = 2300;
-const GRID_COUNT   = 25;
-// ============================================================
-
-const API_HEADERS = {
-  "apikey":        SUPABASE_KEY,
-  "Authorization": `Bearer ${SUPABASE_KEY}`,
-  "Content-Type":  "application/json",
-};
-
-async function query(table, params = "") {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: API_HEADERS });
-  if (!res.ok) throw new Error(`${table}: ${res.status}`);
-  return res.json();
-}
-
-// \u2500\u2500 Catppuccin chart colors \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-const C = {
-  blue:   "#89b4fa",
-  green:  "#a6e3a1",
-  red:    "#f38ba8",
-  yellow: "#f9e2af",
-  mauve:  "#cba6f7",
-  surf0:  "#313244",
-  surf1:  "#45475a",
-  overlay:"#6c7086",
-  text:   "#cdd6f4",
-};
-
-// \u2500\u2500 PnL Chart \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+const SUPABASE_URL="https://tgrmivymsesqpdrsludq.supabase.co";
+const SUPABASE_KEY="sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG";
+const CAPITAL=1690;
+const BOT_CONFIG=[{lev:2,cls:"lev2",label:"2x Leverage",color:"#89dceb"},{lev:3,cls:"lev3",label:"3x Leverage",color:"#89b4fa"},{lev:5,cls:"lev5",label:"5x Leverage",color:"#cba6f7"}];
+const API_HEADERS={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"};
+async function query(t,p=""){const r=await fetch(SUPABASE_URL+"/rest/v1/"+t+"?"+p,{headers:API_HEADERS});if(!r.ok)throw new Error(t+": "+r.status);return r.json();}
+const C={blue:"#89b4fa",green:"#a6e3a1",red:"#f38ba8",yellow:"#f9e2af",mauve:"#cba6f7",teal:"#89dceb",surf0:"#313244",surf1:"#45475a",overlay:"#6c7086",text:"#cdd6f4"};
 let pnlChart;
-
-function initChart() {
-  const ctx = document.getElementById("pnl-chart").getContext("2d");
-  pnlChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: [],
-      datasets: [{
-        label: "PnL (USD)",
-        data: [],
-        backgroundColor: (ctx) => ctx.raw >= 0
-          ? "rgba(166,227,161,0.6)"
-          : "rgba(243,139,168,0.6)",
-        borderColor: (ctx) => ctx.raw >= 0
-          ? C.green : C.red,
-        borderWidth: 1,
-        borderRadius: 5,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: "#313244",
-          titleColor: "#a6adc8",
-          bodyColor: "#cdd6f4",
-          borderColor: "#45475a",
-          borderWidth: 1,
-          callbacks: {
-            label: (ctx) => ` $${ctx.raw.toFixed(4)}`
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { color: C.overlay, font: { size: 11 } },
-          grid:  { color: C.surf0 },
-        },
-        y: {
-          ticks: { color: C.overlay, font: { size: 11 } },
-          grid:  { color: C.surf0 },
-        },
-      },
-    },
+function initChart(){
+  const ctx=document.getElementById("pnl-chart").getContext("2d");
+  pnlChart=new Chart(ctx,{type:"bar",data:{labels:[],datasets:[{label:"2x Bot",data:[],backgroundColor:"rgba(137,220,235,0.5)",borderColor:C.teal,borderWidth:1,borderRadius:4},{label:"3x Bot",data:[],backgroundColor:"rgba(137,180,250,0.5)",borderColor:C.blue,borderWidth:1,borderRadius:4},{label:"5x Bot",data:[],backgroundColor:"rgba(203,166,247,0.5)",borderColor:C.mauve,borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:C.text,font:{size:11},boxWidth:12}},tooltip:{backgroundColor:"#313244",titleColor:"#a6adc8",bodyColor:"#cdd6f4",borderColor:"#45475a",borderWidth:1,callbacks:{label:(c)=>" $"+c.raw.toFixed(4)}}},scales:{x:{ticks:{color:C.overlay,font:{size:11}},grid:{color:C.surf0}},y:{ticks:{color:C.overlay,font:{size:11}},grid:{color:C.surf0}}}}});
+}
+function renderBotCards(rows){
+  const byLev={};rows.forEach(r=>{byLev[r.leverage]=r;});
+  document.getElementById("bots-grid").innerHTML=BOT_CONFIG.map(cfg=>{
+    const s=byLev[cfg.lev];
+    if(!s)return '<div class="bot-card bot-offline"><div class="bot-header"><span class="bot-title">ETH/USDT</span><span class="lev-badge offline">'+cfg.label+'</span></div><div class="bot-state" style="color:var(--overlay)">⚪ ยังไม่เริ่ม</div><div class="bot-profit" style="color:var(--overlay)">—</div><div class="bot-pct" style="color:var(--overlay)">รอเปิดใช้งาน</div><div class="bot-rows"><div class="bot-row"><span class="bot-key">APR</span><span class="bot-val">—</span></div><div class="bot-row"><span class="bot-key">algo_state</span><span class="bot-val">—</span></div><div class="bot-row"><span class="bot-key">อัปเดต</span><span class="bot-val">—</span></div></div></div>';
+    const run=s.state==="running";
+    const pf=s.profit_loss!=null?+s.profit_loss:null;
+    const apr=s.total_annualized_rate!=null?+s.total_annualized_rate:null;
+    const upd=s.updated_at?new Date(s.updated_at).toLocaleTimeString("th-TH",{hour12:false}):"—";
+    const sc=run?"var(--green)":"var(--red)";
+    const pc=pf!=null&&pf>=0?"var(--green)":"var(--red)";
+    return '<div class="bot-card '+cfg.cls+'"><div class="bot-header"><span class="bot-title">ETH/USDT</span><span class="lev-badge '+cfg.cls+'">'+cfg.label+'</span></div><div class="bot-state" style="color:'+sc+'">'+(run?"🟢 RUNNING":"🔴 STOPPED")+'</div><div class="bot-profit" style="color:'+pc+'">'+(pf!=null?"$"+pf.toFixed(4):"—")+'</div><div class="bot-pct" style="color:'+pc+'">'+(pf!=null?((pf/CAPITAL)*100).toFixed(4)+"% ของทุน · APR "+(apr!=null?apr.toFixed(2)+"%":"—"):"—")+'</div><div class="bot-rows"><div class="bot-row"><span class="bot-key">APR</span><span class="bot-val" style="color:var(--yellow)">'+(apr!=null?apr.toFixed(2)+"%":"—")+'</span></div><div class="bot-row"><span class="bot-key">algo_state</span><span class="bot-val">'+(s.algo_state||"—")+'</span></div><div class="bot-row"><span class="bot-key">grid</span><span class="bot-val">'+(s.min_price?"$"+(+s.min_price).toLocaleString()+"–$"+(+s.max_price).toLocaleString()+" / "+(s.grid_num||"—")+" lvl":"—")+'</span></div><div class="bot-row"><span class="bot-key">อัปเดต</span><span class="bot-val" style="color:var(--overlay)">'+upd+'</span></div></div></div>';
+  }).join("");
+}
+function updateSidebar(rows){
+  const byLev={};rows.forEach(r=>{byLev[r.leverage]=r;});
+  [2,3,5].forEach(lev=>{
+    const el=document.getElementById("sidebar-bot-"+lev+"x");if(!el)return;
+    const s=byLev[lev];
+    const dc=!s?"pending":s.state==="running"?"running":"stopped";
+    const pf=s?.profit_loss!=null?+s.profit_loss:null;
+    const ps=pf!=null?'<span style="color:'+(pf>=0?"var(--green)":"var(--red)")+';margin-left:auto;font-size:0.7rem">'+(pf>=0?"+":"")+"$"+pf.toFixed(2)+"</span>":'<span style="color:var(--overlay);margin-left:auto;font-size:0.7rem">—</span>';
+    const st=!s?"ยังไม่เริ่ม":s.state==="running"?"กำลังทำงาน":"หยุด";
+    const stc=!s?"var(--overlay)":s.state==="running"?"var(--subtext)":"var(--overlay)";
+    el.innerHTML='<div class="sb-dot '+dc+'"></div><span class="sb-lev lev'+lev+'">'+lev+'x</span><span style="font-size:0.72rem;color:'+stc+'">'+st+"</span>"+ps;
   });
+  const rc=rows.filter(r=>r.state==="running").length;
+  document.getElementById("running-count").textContent=rc+"/3 Bot กำลังทำงาน";
 }
-
-// \u2500\u2500 Main Refresh \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-async function refresh() {
-  try {
-
-    // \u2500\u2500 1. Bot Status \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-    const rows = await query("bot_status", "order=updated_at.desc&limit=1");
-    const s = rows[0];
-
-    if (!s) {
-      setOffline("\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25");
-      return;
-    }
-
-    const isRunning = s.state === "running";
-    const dot = document.getElementById("sidebar-dot");
-    dot.className = "status-dot" + (isRunning ? " pulse" : " offline");
-
-    document.getElementById("sidebar-status-text").textContent =
-      isRunning ? "\u1f7e2 Bot \u0e01\u0e33\u0e25\u0e31\u0e07\u0e17\u0e33\u0e07\u0e32\u0e19" : "\u1f534 Bot \u0e2b\u0e22\u0e38\u0e14\u0e17\u0e33\u0e07\u0e32\u0e19";
-
-    // KPI: Status
-    document.getElementById("kpi-status").textContent =
-      isRunning ? "\u1f7e2 RUNNING" : "\u1f534 OFFLINE";
-    document.getElementById("kpi-state").textContent =
-      `algo_state: ${s.algo_state ?? "\u2014"}`;
-
-    // KPI: Profit
-    const profit = s.profit_loss != null ? +s.profit_loss : null;
-    document.getElementById("kpi-profit").textContent =
-      profit != null ? `$${profit.toFixed(4)}` : "\u2014";
-    document.getElementById("kpi-profit-pct").textContent =
-      profit != null ? `${((profit / CAPITAL) * 100).toFixed(4)}% \u0e02\u0e2d\u0e07\u0e17\u0e38\u0e19` : "\u2014";
-
-    // KPI: APR
-    const apr = s.total_annualized_rate != null ? +s.total_annualized_rate : null;
-    document.getElementById("kpi-apr").textContent =
-      apr != null ? `${apr.toFixed(2)}%` : "\u2014";
-
-    // KPI: Updated
-    const updAt = s.updated_at ? new Date(s.updated_at) : null;
-    const updStr = updAt
-      ? updAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-      : "\u2014";
-    document.getElementById("kpi-updated").textContent = updStr;
-    document.getElementById("last-updated").textContent =
-      updAt ? updAt.toLocaleString("th-TH") : "\u2014";
-
-    // Param cards
-    if (s.min_price && s.max_price)
-      document.getElementById("param-range").textContent =
-        `$${(+s.min_price).toLocaleString()} \u2013 $${(+s.max_price).toLocaleString()}`;
-    if (s.grid_num)
-      document.getElementById("param-grids").textContent = `${s.grid_num} levels`;
-
-    // Status bar
-    document.getElementById("sb-profit").textContent =
-      profit != null ? `${profit >= 0 ? "+" : ""}${profit.toFixed(4)} USDT` : "\u2014";
-    document.getElementById("sb-apr").textContent =
-      apr != null ? `${apr.toFixed(4)}%` : "\u2014";
-    document.getElementById("sb-algostate").textContent = s.algo_state ?? "\u2014";
-    document.getElementById("sb-gridnum").textContent   = s.grid_num ?? "\u2014";
-    document.getElementById("sb-state").textContent     = s.state ?? "\u2014";
-    document.getElementById("sb-updated").textContent   =
-      s.updated_at ? new Date(s.updated_at).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "\u2014";
-
-    // \u2500\u2500 2. Daily PnL Chart \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-    try {
-      const pnlRows = await query("pnl_daily", "order=date.asc&limit=14");
-      if (pnlRows.length) {
-        pnlChart.data.labels = pnlRows.map(r => r.date.slice(5));
-        pnlChart.data.datasets[0].data = pnlRows.map(r => +(+r.pnl).toFixed(4));
-        pnlChart.update();
-      }
-    } catch (e) {
-      console.warn("pnl_daily:", e.message);
-    }
-
-    // \u2500\u2500 3. Recent Trades \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-    try {
-      const trades = await query("trades", "order=created_at.desc&limit=15");
-      const tbody  = document.getElementById("trades-tbody");
-      if (!trades.length) {
-        tbody.innerHTML =
-          `<tr class="empty-row"><td colspan="4">\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e40\u0e17\u0e23\u0e14</td></tr>`;
-      } else {
-        tbody.innerHTML = trades.map(t => {
-          const time    = new Date(t.created_at)
-                            .toLocaleTimeString("th-TH", { hour12: false });
-          const isBuy   = t.side === "buy";
-          const pf      = t.net_profit != null ? +t.net_profit : null;
-          const pfStr   = pf != null
-            ? `<span style="color:${pf >= 0 ? "var(--green)" : "var(--red)"}">
-                 $${pf.toFixed(4)}</span>`
-            : "\u2014";
-          const price   = t.price != null
-            ? `$${(+t.price).toLocaleString(undefined, {minimumFractionDigits:2})}`
-            : "\u2014";
-          return `<tr>
-            <td style="color:var(--overlay);font-size:0.75rem">${time}</td>
-            <td><span class="badge ${isBuy ? "buy" : "sell"}">${isBuy ? "BUY" : "SELL"}</span></td>
-            <td>${price}</td>
-            <td>${pfStr}</td>
-          </tr>`;
-        }).join("");
-      }
-    } catch (e) {
-      console.warn("trades:", e.message);
-    }
-
-  } catch (err) {
-    console.error("refresh error:", err);
-    setOffline("\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49");
-  }
+async function refresh(){
+  try{
+    const rows=await query("bot_status","order=leverage.asc");
+    renderBotCards(rows);updateSidebar(rows);
+    const latest=rows.reduce((a,r)=>!a||new Date(r.updated_at)>new Date(a)?r.updated_at:a,null);
+    const ld=latest?new Date(latest):null;
+    document.getElementById("last-updated").textContent=ld?ld.toLocaleString("th-TH"):"—";
+    const byLev={};rows.forEach(r=>{byLev[r.leverage]=r;});
+    document.getElementById("sb-running").textContent=rows.filter(r=>r.state==="running").length+"/3";
+    const tp=rows.reduce((s,r)=>s+(r.profit_loss!=null?+r.profit_loss:0),0);
+    document.getElementById("sb-total-profit").textContent=(tp>=0?"+":"")+"$"+tp.toFixed(4);
+    [2,3,5].forEach(lev=>{const el=document.getElementById("sb-p"+lev);const s=byLev[lev];if(el)el.textContent=s?.profit_loss!=null?(+s.profit_loss>=0?"+":"")+"$"+(+s.profit_loss).toFixed(4):"—";});
+    document.getElementById("sb-updated").textContent=ld?ld.toISOString().replace("T"," ").slice(0,19)+" UTC":"—";
+    try{
+      const pr=await query("pnl_daily","order=date.asc&limit=42");
+      const dates=[...new Set(pr.map(r=>r.date))].slice(-14);
+      const dl={2:{},3:{},5:{}};
+      const hasLev=pr.some(r=>r.leverage!=null);
+      pr.forEach(r=>{const lv=hasLev?(r.leverage||3):3;if(!dl[lv])dl[lv]={};dl[lv][r.date]=+(+r.pnl).toFixed(4);});
+      pnlChart.data.labels=dates.map(d=>d.slice(5));
+      pnlChart.data.datasets[0].data=dates.map(d=>dl[2][d]||0);
+      pnlChart.data.datasets[1].data=dates.map(d=>dl[3][d]||0);
+      pnlChart.data.datasets[2].data=dates.map(d=>dl[5][d]||0);
+      pnlChart.update();
+    }catch(e){console.warn("pnl_daily:",e.message);}
+    try{
+      const tr=await query("trades","order=created_at.desc&limit=15");
+      const tb=document.getElementById("trades-tbody");
+      if(!tr.length){tb.innerHTML='<tr class="empty-row"><td colspan="4">ยังไม่มีเทรด</td></tr>';}
+      else{tb.innerHTML=tr.map(t=>{const tm=new Date(t.created_at).toLocaleTimeString("th-TH",{hour12:false});const buy=t.side==="buy";const pf=t.net_profit!=null?+t.net_profit:null;const ps=pf!=null?'<span style="color:'+(pf>=0?"var(--green)":"var(--red)")+'">$'+pf.toFixed(4)+"</span>":"—";const pr=t.price!=null?"$"+(+t.price).toLocaleString(undefined,{minimumFractionDigits:2}):"—";return'<tr><td style="color:var(--overlay);font-size:0.75rem">'+tm+'</td><td><span class="badge '+(buy?"buy":"sell")+'">'+(buy?"BUY":"SELL")+"</span></td><td>"+pr+"</td><td>"+ps+"</td></tr>";}).join("");}
+    }catch(e){console.warn("trades:",e.message);}
+  }catch(err){console.error(err);document.getElementById("bots-grid").innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--red);padding:20px">เชื่อมต่อไม่ได้: '+err.message+"</div>";}
 }
-
-function setOffline(msg) {
-  const dot = document.getElementById("sidebar-dot");
-  dot.className = "status-dot offline";
-  document.getElementById("sidebar-status-text").textContent = msg;
-}
-
-// \u2500\u2500 Init \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-document.addEventListener("DOMContentLoaded", () => {
-  initChart();
-  refresh();
-  setInterval(refresh, 30000);
-});
+document.addEventListener("DOMContentLoaded",()=>{initChart();refresh();setInterval(refresh,30000);});
 </script>
 </body>
 </html>
