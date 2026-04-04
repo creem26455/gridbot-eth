@@ -464,6 +464,14 @@ function selectPeriod(btn) {
 }
 
 // ===== DATA FETCHING =====
+
+// Stooq symbol map for commodities (CORS-friendly, free)
+const STOOQ_MAP = {
+  'GC=F': 'xauusd',  // Gold
+  'SI=F': 'xagusd',  // Silver
+  'CL=F': 'clusd'    // Oil WTI
+};
+
 async function fetchCryptoData(coinId, days) {
   const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
   const res = await fetch(url);
@@ -475,46 +483,68 @@ async function fetchCryptoData(coinId, days) {
   }));
 }
 
+async function fetchStooqData(stooqSym, days) {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days - 5);
+  const fmt = d => d.toISOString().slice(0,10).replace(/-/g,'');
+  const url = `https://stooq.com/q/d/l/?s=${stooqSym}&d1=${fmt(startDate)}&d2=${fmt(endDate)}&i=d`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Stooq error: ${res.status}`);
+  const text = await res.text();
+  const lines = text.trim().split('\n').slice(1); // skip header
+  if (lines.length < 2) throw new Error('Stooq: no data');
+  return lines.map(line => {
+    const cols = line.split(',');
+    return { date: new Date(cols[0]), price: parseFloat(cols[4]) }; // Close price
+  }).filter(d => d.price && !isNaN(d.price)).slice(-days);
+}
+
 async function fetchYFinanceData(symbol, days) {
   const range = days <= 30 ? '1mo' : days <= 90 ? '3mo' : days <= 180 ? '6mo' : days <= 365 ? '1y' : '2y';
   const yfPath = `/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=1d&events=history`;
-
-  // 3-layer fallback: query1 → query2 → corsproxy
   const endpoints = [
     `https://query1.finance.yahoo.com${yfPath}`,
     `https://query2.finance.yahoo.com${yfPath}`,
     `https://corsproxy.io/?${encodeURIComponent('https://query1.finance.yahoo.com' + yfPath)}`
   ];
-
   let lastErr = null;
   for (const url of endpoints) {
     try {
-      setProgress(20, `Trying ${url.includes('corsproxy') ? 'proxy' : 'direct'}...`);
+      setProgress(20, 'Fetching...');
       const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
       if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
       const json = await res.json();
       const result = json.chart?.result?.[0];
-      if (!result) { lastErr = new Error('No data returned'); continue; }
+      if (!result) { lastErr = new Error('No data'); continue; }
       const timestamps = result.timestamp;
       const closes = result.indicators.quote[0].close;
       return timestamps.map((ts, i) => ({
         date: new Date(ts * 1000),
         price: closes[i]
       })).filter(d => d.price != null && !isNaN(d.price));
-    } catch (e) {
-      lastErr = e;
-    }
+    } catch (e) { lastErr = e; }
   }
-  throw new Error(`\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e14\u0e36\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25 ${symbol} \u0e44\u0e14\u0e49 (${lastErr?.message}) — \u0e25\u0e2d\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07`);
+  throw new Error(`\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e14\u0e36\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25 ${symbol} (${lastErr?.message})`);
 }
 
 async function fetchData() {
   setProgress(10, 'Fetching historical data...');
   if (selectedAsset.type === 'crypto') {
     return await fetchCryptoData(selectedAsset.id, selectedDays);
-  } else {
-    return await fetchYFinanceData(selectedAsset.yf, selectedDays);
   }
+  // Commodity: ใช้ Stooq ก่อน, fallback Yahoo Finance
+  const stooqSym = STOOQ_MAP[selectedAsset.yf];
+  if (stooqSym) {
+    try {
+      setProgress(15, 'Fetching from Stooq...');
+      return await fetchStooqData(stooqSym, selectedDays);
+    } catch (e) {
+      setProgress(20, 'Stooq failed, trying Yahoo...');
+    }
+  }
+  // US Stocks & fallback
+  return await fetchYFinanceData(selectedAsset.yf, selectedDays);
 }
 
 // ===== GRID BOT SIMULATION =====
