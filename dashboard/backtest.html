@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grid Bot Backtester</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --base:    #1e1e2e;
+      --mantle:  #181825;
+      --crust:   #11111b;
+      --surf0:   #313244;
+      --surf1:   #45475a;
+      --overlay: #6c7086;
+      --subtext: #a6adc8;
+      --text:    #cdd6f4;
+      --blue:    #89b4fa;
+      --green:   #a6e3a1;
+      --yellow:  #f9e2af;
+      --mauve:   #cba6f7;
+      --red:     #f38ba8;
+      --teal:    #89dceb;
+      --peach:   #fab387;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--base); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+
+    /* Layout */
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 300px; min-width: 300px; background: var(--mantle); border-right: 1px solid var(--surf0); padding: 20px; overflow-y: auto; }
+    .main { flex: 1; padding: 24px; overflow-y: auto; }
+
+    /* Sidebar */
+    .logo { font-size: 18px; font-weight: 700; color: var(--mauve); margin-bottom: 4px; }
+    .logo-sub { color: var(--subtext); font-size: 12px; margin-bottom: 24px; }
+
+    .section-title { font-size: 11px; font-weight: 600; color: var(--overlay); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; margin-top: 20px; }
+
+    /* Asset buttons */
+    .asset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+    .asset-btn { background: var(--surf0); border: 2px solid transparent; border-radius: 8px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s; color: var(--text); }
+    .asset-btn:hover { border-color: var(--blue); }
+    .asset-btn.active { background: var(--surf1); border-color: var(--mauve); }
+    .asset-btn .icon { font-size: 18px; display: block; margin-bottom: 4px; }
+    .asset-btn .label { font-size: 12px; font-weight: 600; }
+    .asset-btn .sub { font-size: 10px; color: var(--subtext); }
+
+    /* Period buttons */
+    .period-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .period-btn { flex: 1; min-width: 50px; background: var(--surf0); border: 2px solid transparent; border-radius: 6px; padding: 7px 4px; cursor: pointer; color: var(--subtext); font-size: 12px; text-align: center; transition: all 0.2s; }
+    .period-btn:hover { color: var(--text); border-color: var(--blue); }
+    .period-btn.active { background: var(--surf1); border-color: var(--teal); color: var(--teal); font-weight: 600; }
+
+    /* Param inputs */
+    .param-row { margin-bottom: 12px; }
+    .param-label { font-size: 11px; color: var(--subtext); margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .param-label span { color: var(--yellow); font-weight: 600; }
+    input[type=range] { width: 100%; accent-color: var(--mauve); cursor: pointer; }
+    .param-inputs { display: flex; gap: 6px; margin-top: 6px; }
+    .param-inputs input[type=number] { flex: 1; background: var(--surf0); border: 1px solid var(--surf1); border-radius: 6px; padding: 6px 8px; color: var(--text); font-size: 13px; }
+    .param-inputs input[type=number]:focus { outline: none; border-color: var(--blue); }
+
+    /* Run button */
+    .run-btn { width: 100%; margin-top: 20px; padding: 14px; background: linear-gradient(135deg, var(--mauve), var(--blue)); border: none; border-radius: 10px; color: var(--crust); font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; letter-spacing: 0.5px; }
+    .run-btn:hover { opacity: 0.9; }
+    .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .run-btn.loading { animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+    /* Fee info */
+    .fee-info { margin-top: 12px; background: var(--surf0); border-radius: 8px; padding: 10px 12px; font-size: 11px; color: var(--subtext); }
+    .fee-info b { color: var(--yellow); }
+
+    /* Main area */
+    .main-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .main-title { font-size: 22px; font-weight: 700; color: var(--text); }
+    .main-subtitle { font-size: 13px; color: var(--subtext); margin-top: 2px; }
+    .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-badge.idle { background: var(--surf0); color: var(--subtext); }
+    .status-badge.running { background: var(--yellow); color: var(--crust); }
+    .status-badge.done { background: var(--green); color: var(--crust); }
+    .status-badge.error { background: var(--red); color: var(--crust); }
+
+    /* Empty state */
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; color: var(--subtext); text-align: center; }
+    .empty-state .big-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.4; }
+    .empty-state h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+
+    /* KPI cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+    .kpi-card { background: var(--mantle); border-radius: 12px; padding: 16px; border-left: 3px solid var(--surf1); }
+    .kpi-card.positive { border-left-color: var(--green); }
+    .kpi-card.negative { border-left-color: var(--red); }
+    .kpi-card.neutral { border-left-color: var(--blue); }
+    .kpi-card.info { border-left-color: var(--yellow); }
+    .kpi-label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .kpi-value { font-size: 24px; font-weight: 700; }
+    .kpi-value.green { color: var(--green); }
+    .kpi-value.red { color: var(--red); }
+    .kpi-value.blue { color: var(--blue); }
+    .kpi-value.yellow { color: var(--yellow); }
+    .kpi-sub { font-size: 11px; color: var(--subtext); margin-top: 4px; }
+
+    /* Charts */
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    .chart-card { background: var(--mantle); border-radius: 12px; padding: 16px; }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title { font-size: 13px; font-weight: 600; color: var(--subtext); margin-bottom: 14px; }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* Trades table */
+    .table-card { background: var(--mantle); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+    .table-title { font-size: 13px; font-weight: 600; color: var(--subtext); margin-bottom: 12px; }
+    .trades-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .trades-table th { text-align: left; padding: 8px 10px; color: var(--subtext); border-bottom: 1px solid var(--surf0); font-weight: 600; }
+    .trades-table td { padding: 7px 10px; border-bottom: 1px solid var(--surf0); }
+    .trades-table tr:last-child td { border-bottom: none; }
+    .trades-table tr:hover td { background: var(--surf0); }
+    .tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .tag.buy { background: rgba(166,227,161,0.15); color: var(--green); }
+    .tag.sell { background: rgba(243,139,168,0.15); color: var(--red); }
+    .profit-pos { color: var(--green); }
+    .profit-neg { color: var(--red); }
+
+    /* Progress bar */
+    .progress-bar { width: 100%; height: 4px; background: var(--surf0); border-radius: 2px; margin-top: 10px; overflow: hidden; display: none; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--mauve), var(--blue)); border-radius: 2px; transition: width 0.3s; }
+
+    /* Error box */
+    .error-box { background: rgba(243,139,168,0.1); border: 1px solid var(--red); border-radius: 10px; padding: 14px 18px; color: var(--red); margin-bottom: 20px; display: none; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .app { flex-direction: column; }
+      .sidebar { width: 100%; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="logo">&#128202; Grid Backtester</div>
+    <div class="logo-sub">Grid Bot Simulation Tool</div>
+
+    <div class="section-title">&#127759; &#3648;&#3621;&#3639;&#3629;&#3585;&#3626;&#3636;&#3609;&#3607;&#3619;&#3633;&#3614;&#3618;&#3660;</div>
+    <div class="asset-grid" id="assetGrid">
+      <button class="asset-btn active" data-id="ethereum" data-sym="ETH/USDT" data-type="crypto" data-yf="" onclick="selectAsset(this)">
+        <span class="icon">&#9410;</span>
+        <span class="label">ETH</span>
+        <span class="sub">Ethereum</span>
+      </button>
+      <button class="asset-btn" data-id="bitcoin" data-sym="BTC/USDT" data-type="crypto" data-yf="" onclick="selectAsset(this)">
+        <span class="icon">&#8383;</span>
+        <span class="label">BTC</span>
+        <span class="sub">Bitcoin</span>
+      </button>
+      <button class="asset-btn" data-id="solana" data-sym="SOL/USDT" data-type="crypto" data-yf="" onclick="selectAsset(this)">
+        <span class="icon">&#9728;</span>
+        <span class="label">SOL</span>
+        <span class="sub">Solana</span>
+      </button>
+      <button class="asset-btn" data-id="binancecoin" data-sym="BNB/USDT" data-type="crypto" data-yf="" onclick="selectAsset(this)">
+        <span class="icon">&#11088;</span>
+        <span class="label">BNB</span>
+        <span class="sub">BNB Chain</span>
+      </button>
+      <button class="asset-btn" data-id="GC=F" data-sym="XAU/USD" data-type="yf" data-yf="GC=F" onclick="selectAsset(this)">
+        <span class="icon">&#127467;</span>
+        <span class="label">GOLD</span>
+        <span class="sub">&#3607;&#3629;&#3591;&#3588;&#3635;</span>
+      </button>
+      <button class="asset-btn" data-id="SI=F" data-sym="XAG/USD" data-type="yf" data-yf="SI=F" onclick="selectAsset(this)">
+        <span class="icon">&#129689;</span>
+        <span class="label">SILVER</span>
+        <span class="sub">&#3649;&#3619;&#3656;&#3648;&#3591;&#3636;&#3609;</span>
+      </button>
+      <button class="asset-btn" data-id="CL=F" data-sym="WTI/USD" data-type="yf" data-yf="CL=F" onclick="selectAsset(this)">
+        <span class="icon">&#128722;</span>
+        <span class="label">OIL</span>
+        <span class="sub">&#3609;&#3657;&#3635;&#3617;&#3633;&#3609; WTI</span>
+      </button>
+      <button class="asset-btn" data-id="ripple" data-sym="XRP/USDT" data-type="crypto" data-yf="" onclick="selectAsset(this)">
+        <span class="icon">&#9733;</span>
+        <span class="label">XRP</span>
+        <span class="sub">Ripple</span>
+      </button>
+    </div>
+
+    <div class="section-title">&#128197; &#3594;&#3656;&#3623;&#3591;&#3648;&#3623;&#3621;&#3634;</div>
+    <div class="period-row" id="periodRow">
+      <button class="period-btn" data-days="30" onclick="selectPeriod(this)">1&#3648;&#3604;</button>
+      <button class="period-btn" data-days="90" onclick="selectPeriod(this)">3&#3648;&#3604;</button>
+      <button class="period-btn active" data-days="180" onclick="selectPeriod(this)">6&#3648;&#3604;</button>
+      <button class="period-btn" data-days="365" onclick="selectPeriod(this)">1&#3611;</button>
+      <button class="period-btn" data-days="730" onclick="selectPeriod(this)">2&#3611;</button>
+    </div>
+
+    <div class="section-title">&#9881; Grid Parameters</div>
+
+    <div class="param-row">
+      <div class="param-label">&#3607;&#3640;&#3609;&#3648;&#3619;&#3636;&#3656;&#3617;&#3605;&#3657;&#3609; (Capital USD) <span id="capVal">$1,690</span></div>
+      <div class="param-inputs">
+        <input type="number" id="capital" value="1690" min="100" max="100000" step="10" oninput="updateParam('capVal','$'+Number(this.value).toLocaleString())">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <div class="param-label">&#3619;&#3632;&#3618;&#3632; Grid (%) — &#3649;&#3605;&#3656;&#3621;&#3632;&#3607;&#3656;&#3629;&#3591; <span id="spacingVal">1.0%</span></div>
+      <input type="range" id="spacing" min="0.2" max="5" step="0.1" value="1.0" oninput="document.getElementById('spacingVal').textContent=parseFloat(this.value).toFixed(1)+'%'">
+    </div>
+
+    <div class="param-row">
+      <div class="param-label">&#3592;&#3635;&#3609;&#3623;&#3609; Grids <span id="gridsVal">25</span></div>
+      <input type="range" id="grids" min="5" max="100" step="1" value="25" oninput="document.getElementById('gridsVal').textContent=this.value">
+    </div>
+
+    <div class="param-row">
+      <div class="param-label">Leverage <span id="levVal">3x</span></div>
+      <input type="range" id="leverage" min="1" max="10" step="1" value="3" oninput="document.getElementById('levVal').textContent=this.value+'x'">
+    </div>
+
+    <div class="param-row">
+      <div class="param-label">&#3588;&#3656;&#3634;&#3608;&#3619;&#3619;&#3617;&#3648;&#3609;&#3637;&#3618;&#3617; / &#3604;&#3657;&#3634;&#3609; (%) <span id="feeVal">0.10%</span></div>
+      <input type="range" id="fee" min="0.01" max="0.5" step="0.01" value="0.10" oninput="document.getElementById('feeVal').textContent=parseFloat(this.value).toFixed(2)+'%'">
+    </div>
+
+    <div class="fee-info">
+      &#128204; Grid bot &#3648;&#3585;&#3655;&#3610;&#3585;&#3635;&#3652;&#3619;&#3648;&#3617;&#3639;&#3656;&#3629;&#3619;&#3634;&#3588;&#3634;&#3648;&#3604;&#3636;&#3609;&#3607;&#3609; <b>sideway</b> &#3605;&#3657;&#3629;&#3591;&#3585;&#3634;&#3619; <b>stop loss</b> &#3648;&#3617;&#3639;&#3656;&#3629;&#3619;&#3634;&#3588;&#3634;&#3614;&#3621;&#3634;&#3604; range
+    </div>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+
+    <button class="run-btn" id="runBtn" onclick="runBacktest()">
+      &#9654; &#3619;&#3633;&#3609; Backtest
+    </button>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <div class="main-title">Grid Bot Backtester</div>
+        <div class="main-subtitle" id="mainSubtitle">&#3648;&#3621;&#3639;&#3629;&#3585;&#3626;&#3636;&#3609;&#3607;&#3619;&#3633;&#3614;&#3618;&#3660; &#3649;&#3621;&#3632;&#3594;&#3656;&#3623;&#3591;&#3648;&#3623;&#3621;&#3634; &#3649;&#3621;&#3657;&#3623;&#3585;&#3604; Run Backtest</div>
+      </div>
+      <span class="status-badge idle" id="statusBadge">&#9898; &#3619;&#3629;&#3604;&#3635;&#3648;&#3609;&#3636;&#3609;&#3585;&#3634;&#3619;</span>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="big-icon">&#128202;</div>
+      <h3>&#3618;&#3633;&#3591;&#3652;&#3617;&#3656;&#3617;&#3637;&#3614;&#3621;&#3621;&#3633;&#3614;&#3608;&#3660;</h3>
+      <p>&#3648;&#3621;&#3639;&#3629;&#3585;&#3626;&#3636;&#3609;&#3607;&#3619;&#3633;&#3614;&#3618;&#3660; &#3605;&#3633;&#3657;&#3591;&#3605;&#3633;&#3656;&#3623; &#3649;&#3621;&#3657;&#3623;&#3585;&#3604; <b>Run Backtest</b></p>
+    </div>
+
+    <!-- Results (hidden until run) -->
+    <div id="results" style="display:none">
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card" id="card-pnl">
+          <div class="kpi-label">&#128176; &#3585;&#3635;&#3652;&#3619;/&#3586;&#3634;&#3604;&#3607;&#3640;&#3609; (USD)</div>
+          <div class="kpi-value" id="kpi-pnl">—</div>
+          <div class="kpi-sub" id="kpi-pnl-sub">—</div>
+        </div>
+        <div class="kpi-card neutral" id="card-return">
+          <div class="kpi-label">&#128200; &#3612;&#3621;&#3605;&#3629;&#3610;&#3649;&#3607;&#3609;&#3619;&#3623;&#3617;</div>
+          <div class="kpi-value blue" id="kpi-return">—</div>
+          <div class="kpi-sub" id="kpi-return-sub">&#3648;&#3607;&#3637;&#3618;&#3610;&#3607;&#3640;&#3609;&#3605;&#3657;&#3609;</div>
+        </div>
+        <div class="kpi-card info">
+          <div class="kpi-label">&#9889; &#3592;&#3635;&#3609;&#3623;&#3609; Trades</div>
+          <div class="kpi-value yellow" id="kpi-trades">—</div>
+          <div class="kpi-sub" id="kpi-trades-sub">&#3607;&#3619;&#3634;&#3609;&#3592;&#3634;&#3585;&#3626;&#3619;&#3657;&#3634;&#3591; grid</div>
+        </div>
+        <div class="kpi-card" id="card-dd">
+          <div class="kpi-label">&#128308; Max Drawdown</div>
+          <div class="kpi-value" id="kpi-dd">—</div>
+          <div class="kpi-sub">&#3614;&#3609;&#3633;&#3585;&#3604;&#3641;&#3610;&#3617;&#3634;&#3585;&#3607;&#3637;&#3656;&#3626;&#3640;&#3604;</div>
+        </div>
+      </div>
+
+      <!-- Charts row 1 -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">&#128200; &#3585;&#3635;&#3652;&#3619;&#3626;&#3632;&#3626;&#3617; (Cumulative PnL)</div>
+          <div class="chart-wrap"><canvas id="pnlChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">&#128308; &#3619;&#3634;&#3588;&#3634; vs Grid Levels</div>
+          <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Charts row 2 -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">&#128202; &#3585;&#3635;&#3652;&#3619;&#3605;&#3656;&#3629;&#3648;&#3604;&#3639;&#3629;&#3609; (Monthly PnL)</div>
+          <div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">&#9889; Trade &#3605;&#3656;&#3629;&#3623;&#3633;&#3609;</div>
+          <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Trade log -->
+      <div class="table-card">
+        <div class="table-title">&#128220; Trade Log (&#3621;&#3656;&#3634;&#3626;&#3640;&#3604; 50 &#3619;&#3634;&#3618;&#3585;&#3634;&#3619;)</div>
+        <div style="overflow-x:auto; max-height:300px; overflow-y:auto;">
+          <table class="trades-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>&#3623;&#3633;&#3609;&#3607;&#3637;</th>
+                <th>&#3607;&#3636;&#3624;&#3607;&#3634;&#3591;</th>
+                <th>&#3619;&#3634;&#3588;&#3634;</th>
+                <th>Grid Level</th>
+                <th>&#3585;&#3635;&#3652;&#3619; (USD)</th>
+                <th>&#3626;&#3632;&#3626;&#3617; (USD)</th>
+              </tr>
+            </thead>
+            <tbody id="tradeBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /results -->
+  </main>
+</div>
+
+<script>
+// ===== STATE =====
+let selectedAsset = { id:'ethereum', sym:'ETH/USDT', type:'crypto', yf:'' };
+let selectedDays = 180;
+let charts = {};
+
+// ===== ASSET / PERIOD SELECTION =====
+function selectAsset(btn) {
+  document.querySelectorAll('.asset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedAsset = {
+    id: btn.dataset.id,
+    sym: btn.dataset.sym,
+    type: btn.dataset.type,
+    yf: btn.dataset.yf
+  };
+}
+
+function selectPeriod(btn) {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedDays = parseInt(btn.dataset.days);
+}
+
+// ===== DATA FETCHING =====
+async function fetchCryptoData(coinId, days) {
+  const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`);
+  const data = await res.json();
+  return data.prices.map(([ts, price]) => ({
+    date: new Date(ts),
+    price
+  }));
+}
+
+async function fetchYFinanceData(symbol, days) {
+  const range = days <= 30 ? '1mo' : days <= 90 ? '3mo' : days <= 180 ? '6mo' : days <= 365 ? '1y' : '2y';
+  const interval = days <= 30 ? '1d' : '1d';
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&events=history`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`Yahoo Finance error ${res.status} for ${symbol}`);
+  const json = await res.json();
+  const result = json.chart.result[0];
+  const timestamps = result.timestamp;
+  const closes = result.indicators.quote[0].close;
+  return timestamps.map((ts, i) => ({
+    date: new Date(ts * 1000),
+    price: closes[i]
+  })).filter(d => d.price != null);
+}
+
+async function fetchData() {
+  setProgress(10, 'Fetching historical data...');
+  if (selectedAsset.type === 'crypto') {
+    return await fetchCryptoData(selectedAsset.id, selectedDays);
+  } else {
+    return await fetchYFinanceData(selectedAsset.yf, selectedDays);
+  }
+}
+
+// ===== GRID BOT SIMULATION =====
+function simulateGridBot(priceData, params) {
+  const { capital, spacing, grids, leverage, fee } = params;
+  if (priceData.length < 2) throw new Error('Not enough data');
+
+  // ราคา ณ วันแรก = ราคา center
+  const startPrice = priceData[0].price;
+
+  // สร้าง grid levels รอบ startPrice
+  const halfGrids = Math.floor(grids / 2);
+  const levels = [];
+  for (let i = -halfGrids; i <= halfGrids; i++) {
+    levels.push(startPrice * Math.pow(1 + spacing/100, i));
+  }
+  levels.sort((a, b) => a - b);
+
+  // ทุนต่อ grid
+  const capitalPerGrid = (capital * leverage) / grids;
+  const contractsPerGrid = capitalPerGrid / startPrice;
+
+  let cumulativePnl = 0;
+  const trades = [];
+  const pnlByDay = [];
+  const pnlByMonth = {};
+  const tradesPerDay = {};
+
+  // grid positions: map level index -> { holding: bool, buyPrice: number }
+  const positions = {};
+
+  // ราคา range สูงสุด/ต่ำสุด
+  const priceMin = Math.min(...priceData.map(d => d.price));
+  const priceMax = Math.max(...priceData.map(d => d.price));
+
+  let maxEquity = capital;
+  let minEquity = capital;
+  let equity = capital;
+
+  setProgress(50, 'Simulating grid trades...');
+
+  let prevPrice = priceData[0].price;
+
+  for (let i = 1; i < priceData.length; i++) {
+    const { date, price } = priceData[i];
+    const dateStr = date.toISOString().slice(0, 10);
+    const monthStr = date.toISOString().slice(0, 7);
+    let dayPnl = 0;
+    let dayTrades = 0;
+
+    // เช็ค grid levels ที่ราคาผ่าน
+    for (let li = 0; li < levels.length - 1; li++) {
+      const lower = levels[li];
+      const upper = levels[li + 1];
+
+      // ราคาลงผ่าน lower → BUY (เปิด long)
+      if (prevPrice >= lower && price < lower && !positions[li]) {
+        positions[li] = { buyPrice: lower, qty: contractsPerGrid };
+      }
+      // ราคาขึ้นผ่าน upper → SELL (ปิด long ถ้ามี position ที่ lower)
+      if (prevPrice <= upper && price > upper && positions[li]) {
+        const pos = positions[li];
+        const priceDiff = upper - pos.buyPrice;
+        const gross = priceDiff * pos.qty;
+        const feeAmt = (pos.buyPrice + upper) * pos.qty * (fee / 100);
+        const net = gross - feeAmt;
+        cumulativePnl += net;
+        equity += net;
+        dayPnl += net;
+        dayTrades++;
+        trades.push({
+          date: dateStr,
+          type: 'BUY→SELL',
+          buyPrice: pos.buyPrice,
+          sellPrice: upper,
+          profit: net
+        });
+        delete positions[li];
+      }
+    }
+
+    maxEquity = Math.max(maxEquity, equity);
+    minEquity = Math.min(minEquity, equity);
+
+    pnlByDay.push({ date: dateStr, pnl: cumulativePnl });
+    tradesPerDay[dateStr] = (tradesPerDay[dateStr] || 0) + dayTrades;
+    pnlByMonth[monthStr] = (pnlByMonth[monthStr] || 0) + dayPnl;
+
+    prevPrice = price;
+  }
+
+  const maxDrawdown = maxEquity > capital ? ((maxEquity - minEquity) / maxEquity * 100) : Math.abs((equity - capital) / capital * 100);
+  const totalReturn = (cumulativePnl / capital) * 100;
+  const annualizedReturn = totalReturn * (365 / selectedDays);
+
+  return {
+    totalPnl: cumulativePnl,
+    totalReturn,
+    annualizedReturn,
+    totalTrades: trades.length,
+    maxDrawdown,
+    levels,
+    priceData,
+    pnlByDay,
+    pnlByMonth,
+    tradesPerDay,
+    trades,
+    startPrice,
+    priceMin,
+    priceMax
+  };
+}
+
+// ===== RENDER RESULTS =====
+function renderResults(r, params) {
+  setProgress(80, 'Rendering charts...');
+
+  // KPI
+  const pnlEl = document.getElementById('kpi-pnl');
+  pnlEl.textContent = (r.totalPnl >= 0 ? '+' : '') + '$' + r.totalPnl.toFixed(2);
+  pnlEl.className = 'kpi-value ' + (r.totalPnl >= 0 ? 'green' : 'red');
+  document.getElementById('kpi-pnl-sub').textContent = `จาก ${selectedDays} วัน | ทุน $${params.capital.toLocaleString()}`;
+  document.getElementById('card-pnl').className = 'kpi-card ' + (r.totalPnl >= 0 ? 'positive' : 'negative');
+
+  const retEl = document.getElementById('kpi-return');
+  retEl.textContent = (r.totalReturn >= 0 ? '+' : '') + r.totalReturn.toFixed(2) + '%';
+  retEl.className = 'kpi-value ' + (r.totalReturn >= 0 ? 'green' : 'red');
+  document.getElementById('kpi-return-sub').textContent = `APY ≈ ${r.annualizedReturn.toFixed(1)}%/ปี`;
+
+  document.getElementById('kpi-trades').textContent = r.totalTrades.toLocaleString();
+  document.getElementById('kpi-trades-sub').textContent = `เฉลี่ย ${(r.totalTrades / selectedDays).toFixed(1)} trade/วัน`;
+
+  const ddEl = document.getElementById('kpi-dd');
+  ddEl.textContent = '-' + r.maxDrawdown.toFixed(2) + '%';
+  ddEl.className = 'kpi-value ' + (r.maxDrawdown > 20 ? 'red' : r.maxDrawdown > 10 ? 'yellow' : 'green');
+  document.getElementById('card-dd').className = 'kpi-card ' + (r.maxDrawdown > 20 ? 'negative' : 'neutral');
+
+  // Destroy old charts
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#313244', titleColor: '#cdd6f4', bodyColor: '#a6adc8' } },
+    scales: {
+      x: { ticks: { color: '#6c7086', maxTicksLimit: 6, font: {size:10} }, grid: { color: '#313244' } },
+      y: { ticks: { color: '#6c7086', font: {size:10} }, grid: { color: '#313244' } }
+    }
+  };
+
+  // Chart 1: Cumulative PnL
+  const pnlLabels = r.pnlByDay.map(d => d.date);
+  const pnlData = r.pnlByDay.map(d => +d.pnl.toFixed(4));
+  charts.pnl = new Chart(document.getElementById('pnlChart'), {
+    type: 'line',
+    data: {
+      labels: pnlLabels,
+      datasets: [{
+        data: pnlData,
+        borderColor: r.totalPnl >= 0 ? '#a6e3a1' : '#f38ba8',
+        backgroundColor: r.totalPnl >= 0 ? 'rgba(166,227,161,0.1)' : 'rgba(243,139,168,0.1)',
+        fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
+      }]
+    },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, tooltip: { ...chartDefaults.plugins.tooltip, callbacks: { label: ctx => '$' + ctx.raw.toFixed(2) } } } }
+  });
+
+  // Chart 2: Price + Grid sample lines
+  const priceLabels = r.priceData.map(d => d.date.toISOString().slice(0,10));
+  const priceValues = r.priceData.map(d => +d.price.toFixed(4));
+  const gridDatasets = [];
+  // แสดงแค่ 5 grid lines (ตรงกลาง)
+  const midIdx = Math.floor(r.levels.length / 2);
+  const showLevels = r.levels.slice(Math.max(0, midIdx-2), midIdx+3);
+  showLevels.forEach((lvl, i) => {
+    gridDatasets.push({
+      data: new Array(priceValues.length).fill(+lvl.toFixed(4)),
+      borderColor: 'rgba(203,166,247,0.3)',
+      borderDash: [4, 4],
+      pointRadius: 0, borderWidth: 1, fill: false
+    });
+  });
+  charts.price = new Chart(document.getElementById('priceChart'), {
+    type: 'line',
+    data: {
+      labels: priceLabels,
+      datasets: [{ data: priceValues, borderColor: '#89b4fa', backgroundColor: 'rgba(137,180,250,0.05)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 }, ...gridDatasets]
+    },
+    options: { ...chartDefaults }
+  });
+
+  // Chart 3: Monthly PnL bar
+  const months = Object.keys(r.pnlByMonth).sort();
+  const monthVals = months.map(m => +r.pnlByMonth[m].toFixed(2));
+  charts.monthly = new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{ data: monthVals, backgroundColor: monthVals.map(v => v >= 0 ? 'rgba(166,227,161,0.7)' : 'rgba(243,139,168,0.7)'), borderRadius: 4 }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  // Chart 4: Daily trades
+  const dayLabels = Object.keys(r.tradesPerDay).sort().slice(-60);
+  const dayVals = dayLabels.map(d => r.tradesPerDay[d] || 0);
+  charts.daily = new Chart(document.getElementById('dailyChart'), {
+    type: 'bar',
+    data: {
+      labels: dayLabels,
+      datasets: [{ data: dayVals, backgroundColor: 'rgba(137,180,250,0.7)', borderRadius: 3 }]
+    },
+    options: { ...chartDefaults }
+  });
+
+  // Trade table
+  const tbody = document.getElementById('tradeBody');
+  tbody.innerHTML = '';
+  const show = r.trades.slice(-50).reverse();
+  let cum = r.totalPnl;
+  show.forEach((t, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--subtext)">${r.trades.length - i}</td>
+      <td>${t.date}</td>
+      <td><span class="tag buy">BUY→SELL</span></td>
+      <td>$${t.buyPrice.toFixed(2)} → $${t.sellPrice.toFixed(2)}</td>
+      <td style="color:var(--mauve)">+${((t.sellPrice - t.buyPrice) / t.buyPrice * 100).toFixed(2)}%</td>
+      <td class="${t.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${t.profit >= 0 ? '+' : ''}$${t.profit.toFixed(4)}</td>
+      <td class="${cum >= 0 ? 'profit-pos' : 'profit-neg'}">$${cum.toFixed(2)}</td>
+    `;
+    tbody.appendChild(tr);
+    cum -= t.profit;
+  });
+
+  if (r.trades.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--subtext);padding:20px">ไม่มี trade เกิดขึ้นในช่วงนี้ — ลอง ลด spacing หรือเพิ่ม grids</td></tr>';
+  }
+}
+
+// ===== MAIN RUN =====
+async function runBacktest() {
+  const btn = document.getElementById('runBtn');
+  const errorBox = document.getElementById('errorBox');
+  const badge = document.getElementById('statusBadge');
+
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = '⟳ กำลังรัน...';
+  errorBox.style.display = 'none';
+  document.getElementById('progressBar').style.display = 'block';
+  badge.className = 'status-badge running';
+  badge.textContent = '⟳ กำลังรัน';
+  document.getElementById('mainSubtitle').textContent = `${selectedAsset.sym} | ${selectedDays} วัน`;
+
+  try {
+    const priceData = await fetchData();
+    setProgress(40, 'Processing data...');
+
+    const params = {
+      capital: parseFloat(document.getElementById('capital').value) || 1690,
+      spacing: parseFloat(document.getElementById('spacing').value),
+      grids: parseInt(document.getElementById('grids').value),
+      leverage: parseFloat(document.getElementById('leverage').value),
+      fee: parseFloat(document.getElementById('fee').value)
+    };
+
+    const result = simulateGridBot(priceData, params);
+    renderResults(result, params);
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('results').style.display = 'block';
+
+    setProgress(100, 'Done');
+    badge.className = 'status-badge done';
+    badge.textContent = '✓ เสร็จแล้ว';
+
+  } catch (err) {
+    errorBox.textContent = '⚠ ' + err.message;
+    errorBox.style.display = 'block';
+    badge.className = 'status-badge error';
+    badge.textContent = '✗ เกิดข้อผิดพลาด';
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.textContent = '▶ Run Backtest';
+    setTimeout(() => {
+      document.getElementById('progressBar').style.display = 'none';
+      document.getElementById('progressFill').style.width = '0%';
+    }, 1000);
+  }
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+</script>
+</body>
+</html>
