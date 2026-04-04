@@ -96,6 +96,7 @@ class DB:
             "state":      t.get("state", ""),
             "created_at": datetime.now(timezone.utc).isoformat(),
         } for t in trades]
+        rows = list({r["order_id"]: r for r in rows}.values())
         self.client.table("trades").upsert(rows, on_conflict="order_id").execute()
         return len(rows)
 
