@@ -131,6 +131,18 @@
     /* Error box */
     .error-box { background: rgba(243,139,168,0.1); border: 1px solid var(--red); border-radius: 10px; padding: 14px 18px; color: var(--red); margin-bottom: 20px; display: none; }
 
+    /* Alpha Vantage key */
+    .av-locked { opacity: 0.45; }
+    .av-unlocked .av-btn .sub { color: var(--green); }
+    .av-key-box { background: var(--surf0); border: 1px solid var(--surf1); border-radius: 8px; padding: 10px 12px; margin-top: 16px; margin-bottom: 4px; }
+    .av-key-box label { font-size: 10px; color: var(--overlay); text-transform: uppercase; letter-spacing: 0.8px; display: block; margin-bottom: 6px; }
+    .av-key-row { display: flex; gap: 6px; }
+    .av-key-row input { flex: 1; background: var(--mantle); border: 1px solid var(--surf1); border-radius: 6px; padding: 6px 8px; color: var(--text); font-size: 11px; font-family: monospace; }
+    .av-key-row input:focus { outline: none; border-color: var(--teal); }
+    .av-key-row button { background: var(--teal); border: none; border-radius: 6px; padding: 6px 10px; color: var(--crust); font-size: 11px; font-weight: 700; cursor: pointer; }
+    .av-key-hint { font-size: 10px; color: var(--overlay); margin-top: 5px; }
+    .av-key-hint a { color: var(--blue); text-decoration: none; }
+
     /* Stock search */
     .search-row { display:flex; gap:6px; margin-bottom:8px; }
     .search-row input { flex:1; background:var(--surf0); border:1px solid var(--surf1); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; }
@@ -190,26 +202,35 @@
         <span class="label">BNB</span>
         <span class="sub">BNB Chain</span>
       </button>
-      <button class="asset-btn" data-id="GC=F" data-sym="XAU/USD" data-type="yf" data-yf="GC=F" onclick="selectAsset(this)">
+      <button class="asset-btn" data-id="pax-gold" data-sym="XAU/USD" data-type="crypto" data-yf="" onclick="selectAsset(this)">
         <span class="icon">&#127467;</span>
         <span class="label">GOLD</span>
-        <span class="sub">&#3607;&#3629;&#3591;&#3588;&#3635;</span>
+        <span class="sub">PAXG &#8776; &#3607;&#3629;&#3591;</span>
       </button>
-      <button class="asset-btn" data-id="SI=F" data-sym="XAG/USD" data-type="yf" data-yf="SI=F" onclick="selectAsset(this)">
+      <button class="asset-btn av-btn" data-id="FX:XAG:USD" data-sym="XAG/USD" data-type="av" data-yf="" onclick="selectAsset(this)">
         <span class="icon">&#129689;</span>
         <span class="label">SILVER</span>
-        <span class="sub">&#3649;&#3619;&#3656;&#3648;&#3591;&#3636;&#3609;</span>
+        <span class="sub">&#128274; &#3605;&#3657;&#3629;&#3591;&#3585;&#3640;&#3597;&#3649;&#3592; Key</span>
       </button>
-      <button class="asset-btn" data-id="CL=F" data-sym="WTI/USD" data-type="yf" data-yf="CL=F" onclick="selectAsset(this)">
+      <button class="asset-btn av-btn" data-id="WTI" data-sym="WTI/USD" data-type="av" data-yf="" onclick="selectAsset(this)">
         <span class="icon">&#128722;</span>
         <span class="label">OIL</span>
-        <span class="sub">&#3609;&#3657;&#3635;&#3617;&#3633;&#3609; WTI</span>
+        <span class="sub">&#128274; &#3605;&#3657;&#3629;&#3591;&#3585;&#3640;&#3609;&#3649;&#3592; Key</span>
       </button>
       <button class="asset-btn" data-id="ripple" data-sym="XRP/USDT" data-type="crypto" data-yf="" onclick="selectAsset(this)">
         <span class="icon">&#9733;</span>
         <span class="label">XRP</span>
         <span class="sub">Ripple</span>
       </button>
+    </div>
+
+    <div class="av-key-box">
+      <label>&#128274; Alpha Vantage API Key — Silver, Oil, US Stocks</label>
+      <div class="av-key-row">
+        <input type="text" id="avKeyInput" placeholder="&#3650;&#3588;&#3604; API Key &#3607;&#3637;&#3656;&#3609;&#3637;&#3656;..." autocomplete="off">
+        <button onclick="saveAvKey()">&#10003; &#3605;&#3633;&#3657;&#3591;</button>
+      </div>
+      <div class="av-key-hint">&#3619;&#3633;&#3610; key &#3615;&#3619;&#3637;&#3607;&#3637;&#3656;: <a href="https://www.alphavantage.co/support/#api-key" target="_blank">alphavantage.co</a> (25 calls/&#3623;&#3633;&#3609;)</div>
     </div>
 
     <div class="section-title">&#127482;&#127480; &#3627;&#3640;&#3657;&#3609;&#3629;&#3648;&#3617;&#3619;&#3636;&#3585;&#3634; US Stocks (Top 100)</div>
@@ -442,7 +463,7 @@ function searchTicker() {
   input.value = '';
 }
 
-window.addEventListener('DOMContentLoaded', initStockChips);
+window.addEventListener('DOMContentLoaded', () => { initStockChips(); initAvState(); });
 
 // ===== ASSET / PERIOD SELECTION =====
 function selectAsset(btn) {
@@ -465,12 +486,50 @@ function selectPeriod(btn) {
 
 // ===== DATA FETCHING =====
 
-// Stooq symbol map for commodities (CORS-friendly, free)
-const STOOQ_MAP = {
-  'GC=F': 'xauusd',  // Gold
-  'SI=F': 'xagusd',  // Silver
-  'CL=F': 'clusd'    // Oil WTI
-};
+// ===== ALPHA VANTAGE KEY =====
+let avKey = localStorage.getItem('av_key') || '';
+
+function saveAvKey() {
+  const inp = document.getElementById('avKeyInput');
+  avKey = inp.value.trim();
+  if (avKey) {
+    localStorage.setItem('av_key', avKey);
+    inp.value = '';
+    inp.placeholder = '\u2705 Key \u0e15\u0e31\u0e49\u0e07\u0e41\u0e25\u0e49\u0e27';
+    document.getElementById('assetGrid').classList.add('av-unlocked');
+    document.querySelectorAll('.av-btn').forEach(b => b.classList.remove('av-locked'));
+    alert('\u2705 \u0e15\u0e31\u0e49\u0e07 Alpha Vantage Key \u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22\u0e41\u0e25\u0e49\u0e27! \u0e15\u0e2d\u0e19\u0e19\u0e35\u0e49\u0e40\u0e25\u0e37\u0e2d\u0e01 Silver, Oil \u0e2b\u0e23\u0e37\u0e2d\u0e2b\u0e38\u0e49\u0e19 US \u0e44\u0e14\u0e49\u0e40\u0e25\u0e22');
+  }
+}
+
+async function fetchAlphaVantageData(avId, days) {
+  if (!avKey) throw new Error('\u0e15\u0e49\u0e2d\u0e07\u0e43\u0e2a\u0e48 Alpha Vantage API Key \u0e01\u0e48\u0e2d\u0e19 (\u0e23\u0e31\u0e1a\u0e1f\u0e23\u0e35\u0e17\u0e35\u0e48 alphavantage.co)');
+  let url;
+  if (avId.startsWith('FX:')) {
+    const [,from,to] = avId.split(':');
+    url = `https://www.alphavantage.co/query?function=FX_DAILY&from_symbol=${from}&to_symbol=${to}&outputsize=full&apikey=${avKey}`;
+  } else if (avId === 'WTI') {
+    url = `https://www.alphavantage.co/query?function=WTI&interval=daily&apikey=${avKey}`;
+  } else {
+    url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${avId}&outputsize=full&apikey=${avKey}`;
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Alpha Vantage HTTP ${res.status}`);
+  const json = await res.json();
+  if (json['Note'] || json['Information']) throw new Error('\u0e40\u0e01\u0e34\u0e19 rate limit — \u0e25\u0e2d\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e20\u0e32\u0e22\u0e2b\u0e25\u0e31\u0e07');
+
+  let rows = [];
+  if (avId === 'WTI') {
+    rows = (json.data || []).map(d => ({ date: new Date(d.date), price: parseFloat(d.value) }));
+  } else if (avId.startsWith('FX:')) {
+    const ts = json['Time Series FX (Daily)'] || {};
+    rows = Object.entries(ts).map(([dt, v]) => ({ date: new Date(dt), price: parseFloat(v['4. close']) }));
+  } else {
+    const ts = json['Time Series (Daily)'] || {};
+    rows = Object.entries(ts).map(([dt, v]) => ({ date: new Date(dt), price: parseFloat(v['4. close']) }));
+  }
+  return rows.filter(d => d.price && !isNaN(d.price)).sort((a,b) => a.date-b.date).slice(-days);
+}
 
 async function fetchCryptoData(coinId, days) {
   const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
@@ -533,18 +592,26 @@ async function fetchData() {
   if (selectedAsset.type === 'crypto') {
     return await fetchCryptoData(selectedAsset.id, selectedDays);
   }
-  // Commodity: ใช้ Stooq ก่อน, fallback Yahoo Finance
-  const stooqSym = STOOQ_MAP[selectedAsset.yf];
-  if (stooqSym) {
-    try {
-      setProgress(15, 'Fetching from Stooq...');
-      return await fetchStooqData(stooqSym, selectedDays);
-    } catch (e) {
-      setProgress(20, 'Stooq failed, trying Yahoo...');
-    }
+  if (selectedAsset.type === 'av') {
+    return await fetchAlphaVantageData(selectedAsset.id, selectedDays);
   }
-  // US Stocks & fallback
-  return await fetchYFinanceData(selectedAsset.yf, selectedDays);
+  // US Stocks via Yahoo Finance + AV fallback
+  try {
+    return await fetchYFinanceData(selectedAsset.yf, selectedDays);
+  } catch(e) {
+    if (avKey) return await fetchAlphaVantageData(selectedAsset.yf, selectedDays);
+    throw new Error('\u0e14\u0e36\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49 — \u0e43\u0e2a\u0e48 Alpha Vantage Key \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e2b\u0e38\u0e49\u0e19 US \u0e41\u0e25\u0e30 Silver/Oil');
+  }
+}
+
+function initAvState() {
+  if (avKey) {
+    document.getElementById('avKeyInput').placeholder = '\u2705 Key \u0e15\u0e31\u0e49\u0e07\u0e41\u0e25\u0e49\u0e27';
+    document.getElementById('assetGrid').classList.add('av-unlocked');
+    document.querySelectorAll('.av-btn').forEach(b => b.classList.remove('av-locked'));
+  } else {
+    document.querySelectorAll('.av-btn').forEach(b => b.classList.add('av-locked'));
+  }
 }
 
 // ===== GRID BOT SIMULATION =====
