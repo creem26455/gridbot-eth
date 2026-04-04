@@ -59,8 +59,8 @@ GRID_COUNT    = os.environ.get("GRID_COUNT", "25")
 LEVERAGE      = os.environ.get("LEVERAGE",   "3")
 DIRECTION     = "long"
 RUN_TYPE      = "1"           # 1 = Arithmetic
-STOP_LOSS_PX  = os.environ.get("STOP_LOSS",  "1700")
-TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "1690"))
+STOP_LOSS_PX  = os.environ.get("STOP_LOSS",  "1750" if LEVERAGE == "5" else "1700")
+TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "1600"))
 
 
 # ============================================================
