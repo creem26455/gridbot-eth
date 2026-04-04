@@ -24,7 +24,7 @@ import logging
 from datetime import datetime, timezone, date
 
 try:
-    import okx.Grid as GridTrading
+    import okx.Grid as Grid
     import okx.MarketData as MarketData
 except ImportError:
     print("❌ กรุณาติดตั้ง: pip install python-okx")
@@ -154,8 +154,8 @@ class DB:
 # ============================================================
 class GridManager:
     def __init__(self):
-        self.grid_api   = GridTrading.GridTradingAPI(
-                            API_KEY, API_SECRET, PASSPHRASE, False, FLAG)
+        self.grid_api   = Grid.GridAPI(
+                            API_KEY, API_SECRET, PASSPHRASE, flag=FLAG)
         self.market_api = MarketData.MarketAPI(flag=FLAG)
         self.db         = DB()
 
@@ -171,7 +171,7 @@ class GridManager:
     def get_running_algo_id(self) -> str:
         """ตรวจว่ามี Grid leverage เดิมรันอยู่บน OKX ไหม"""
         try:
-            res = self.grid_api.get_grid_algo_order_list(
+            res = self.grid_api.grid_orders_algo_pending(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0" and res["data"]:
                 for algo in res["data"]:
@@ -220,10 +220,9 @@ class GridManager:
         }
         if STOP_LOSS_PX:
             params["slTriggerPx"] = STOP_LOSS_PX
-            params["slOrdPx"]     = "-1"
 
         try:
-            res = self.grid_api.place_grid_algo_order(**params)
+            res = self.grid_api.grid_order_algo(**params)
             if res["code"] == "0":
                 algo_id = res["data"][0]["algoId"]
                 log.info(f"✅ OKX เปิด Grid สำเร็จ!")
@@ -258,7 +257,7 @@ class GridManager:
         # ดึงสถานะ Grid จาก OKX
         state = "running"
         try:
-            res = self.grid_api.get_grid_algo_order_list(
+            res = self.grid_api.grid_orders_algo_pending(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0":
                 found = next((d for d in res["data"]
@@ -276,7 +275,7 @@ class GridManager:
         # ดึง trades ที่ filled ใหม่
         new_trades = []
         try:
-            res = self.grid_api.get_grid_algo_sub_orders(
+            res = self.grid_api.grid_sub_orders(
                 algoId=algo_id,
                 algoOrdType="contract_grid",
                 type="filled"
@@ -316,7 +315,7 @@ class GridManager:
             return
 
         try:
-            res = self.grid_api.stop_grid_algo_order(
+            res = self.grid_api.grid_stop_order_algo(
                 algoId=algo_id,
                 instId=INST_ID,
                 algoOrdType="contract_grid",
