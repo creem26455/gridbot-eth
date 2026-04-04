@@ -153,8 +153,8 @@ class DB:
 # ============================================================
 class GridManager:
     def __init__(self):
-                self.grid_api   = Grid.GridAPI(
-                                              API_KEY, API_SECRET, PASSPHRASE, flag=FLAG)
+        self.grid_api   = Grid.GridAPI(
+                            API_KEY, API_SECRET, PASSPHRASE, flag=FLAG)
         self.market_api = MarketData.MarketAPI(flag=FLAG)
         self.db         = DB()
 
