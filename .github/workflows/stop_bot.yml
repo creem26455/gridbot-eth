@@ -1,0 +1,55 @@
+name: Stop Grid Bot (Run Once)
+
+on:
+  workflow_dispatch:
+    inputs:
+      leverage:
+        description: 'Leverage of Bot to stop: 2, 3, 5 or all'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - '2'
+          - '3'
+          - '5'
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Stop Bot
+        env:
+          OKX_API_KEY:    ${{ secrets.OKX_API_KEY }}
+          OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
+          OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
+          OKX_FLAG:       ${{ secrets.OKX_FLAG }}
+          SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
+          MODE:           stop
+        run: |
+          SELECTED="${{ github.event.inputs.leverage }}"
+          if [ "$SELECTED" = "all" ]; then
+            echo "=== Stopping ALL bots ==="
+            for LEV in 2 3 5; do
+              echo "--- Stopping ${LEV}x bot ---"
+              LEVERAGE=$LEV python grid_bot_eth_usdt.py || true
+            done
+          else
+            echo "=== Stopping ${SELECTED}x bot ==="
+            LEVERAGE=$SELECTED python grid_bot_eth_usdt.py
+          fi
