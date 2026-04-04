@@ -147,7 +147,7 @@ class DB:
             "pnl":         pnl,
             "trade_count": trade_count,
             "updated_at":  datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        }, on_conflict="bot_id,date").execute()
 
 
 # ============================================================
