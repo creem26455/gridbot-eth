@@ -227,7 +227,7 @@ class GridManager:
                 # บันทึก algo_id ลง Supabase
                 self.db.update_status(algo_id, "running", price, 0.0, 0)
             else:
-                log.error(f"❌ เปิด Grid ไม่ได้: {res.get('msg')}")
+                log.error(f"❌ เปิด Grid ไม่ได้: code={res.get('code')} msg={res.get('msg')} data={res.get('data')}")
                 sys.exit(1)
         except Exception as e:
             log.error(f"cmd_start error: {e}")
