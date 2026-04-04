@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ETH Grid Bot — Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%); border-bottom: 1px solid #2d3748; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #63b3ed; }
+    header h1 span { color: #68d391; }
+    .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #68d391; animation: pulse 2s infinite; }
+    .dot.offline { background: #fc8181; animation: none; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; padding: 20px; }
+    .card .label { font-size: 0.78rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .card .value { font-size: 1.6rem; font-weight: 700; color: #e2e8f0; }
+    .card .value.green { color: #68d391; }
+    .card .value.yellow { color: #f6e05e; }
+    .card .value.blue { color: #63b3ed; }
+    .card .sub { font-size: 0.78rem; color: #718096; margin-top: 4px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 768px) { .row { grid-template-columns: 1fr; } }
+    .panel { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; padding: 20px; }
+    .panel h2 { font-size: 0.9rem; color: #a0aec0; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .chart-wrap { position: relative; height: 220px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { color: #718096; text-align: left; padding: 8px 12px; border-bottom: 1px solid #2d3748; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.04em; }
+    td { padding: 10px 12px; border-bottom: 1px solid #1e2533; }
+    tr:last-child td { border-bottom: none; }
+    .buy { color: #68d391; font-weight: 600; }
+    .sell { color: #fc8181; font-weight: 600; }
+    .grid-viz { display: flex; flex-direction: column; gap: 3px; height: 220px; overflow-y: auto; }
+    .grid-level { display: flex; align-items: center; gap: 10px; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; transition: background 0.2s; }
+    .grid-level.buy-zone { background: rgba(104,211,145,0.08); }
+    .grid-level.sell-zone { background: rgba(252,129,129,0.08); }
+    .grid-level.current { background: rgba(99,179,237,0.15); border: 1px solid #63b3ed; }
+    .grid-price { width: 80px; font-weight: 600; }
+    .grid-bar { flex: 1; height: 6px; border-radius: 3px; background: #2d3748; }
+    .grid-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #68d391, #38a169); }
+    .grid-bar-fill.sell { background: linear-gradient(90deg, #fc8181, #e53e3e); }
+    .grid-tag { font-size: 0.7rem; color: #718096; width: 35px; text-align: right; }
+    footer { text-align: center; color: #4a5568; font-size: 0.75rem; padding: 16px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🤖 ETH/<span>USDT</span> Grid Bot</h1>
+  <div class="status-badge">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">กำลังโหลด...</span>
+  </div>
+</header>
+<main>
+  <div class="cards">
+    <div class="card"><div class="label">ราคา ETH ปัจจุบัน</div><div class="value blue" id="card-price">—</div><div class="sub" id="card-range">Range: $1,800 – $2,300</div></div>
+    <div class="card"><div class="label">กำไรสะสม (USD)</div><div class="value green" id="card-profit">—</div><div class="sub" id="card-profit-pct">—</div></div>
+    <div class="card"><div class="label">จำนวน Grids</div><div class="value yellow" id="card-trades">—</div><div class="sub">ช่อง</div></div>
+    <div class="card"><div class="label">สถานะ Algo</div><div class="value" id="card-orders">—</div><div class="sub">algo_state</div></div>
+    <div class="card"><div class="label">อัปเดตล่าสุด</div><div class="value" style="font-size:1rem" id="card-updated">—</div><div class="sub" id="card-mode">—</div></div>
+  </div>
+  <div class="row">
+    <div class="panel"><h2>📈 PnL รายวัน (USD)</h2><div class="chart-wrap"><canvas id="pnl-chart"></canvas></div></div>
+    <div class="panel"><h2>🔲 Grid Levels</h2><div class="grid-viz" id="grid-viz"><div style="color:#718096;font-size:0.85rem;">กำลังโหลด...</div></div></div>
+  </div>
+  <div class="panel">
+    <h2>🔄 เทรดล่าสุด</h2>
+    <table><thead><tr><th>เวลา</th><th>ทิศทาง</th><th>ราคา</th><th>ETH</th><th>กำไรสุทธิ์</th></tr></thead>
+    <tbody id="trades-tbody"><tr><td colspan="5" style="color:#718096;text-align:center">กำลังโหลด...</td></tr></tbody></table>
+  </div>
+</main>
+<footer>BossMhee Grid Bot Dashboard • อัปเดตทุก 10 วินาที</footer>
+<script>
+const SUPABASE_URL = "https://tgrmivymsesqpdrsludq.supabase.co";
+const SUPABASE_KEY = "sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG";
+const CAPITAL = 1690, GRID_LOWER = 1800, GRID_UPPER = 2300, GRID_COUNT = 25;
+const headers = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" };
+async function query(table, params="") { const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {headers}); if(!r.ok) throw new Error(`${table}: ${r.status}`); return r.json(); }
+let pnlChart;
+function initChart() {
+  pnlChart = new Chart(document.getElementById("pnl-chart").getContext("2d"), {
+    type:"bar", data:{labels:[],datasets:[{label:"PnL",data:[],backgroundColor:c=>c.raw>=0?"rgba(104,211,145,0.7)":"rgba(252,129,129,0.7)",borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#718096"},grid:{color:"#2d3748"}},y:{ticks:{color:"#718096"},grid:{color:"#2d3748"}}}}
+  });
+}
+function renderGrid(p) {
+  const step=(GRID_UPPER-GRID_LOWER)/GRID_COUNT, levels=[];
+  for(let i=GRID_COUNT;i>=0;i--) levels.push(+(GRID_LOWER+i*step).toFixed(2));
+  document.getElementById("grid-viz").innerHTML=levels.map(l=>{
+    const isSell=l>(p||GRID_LOWER+(GRID_UPPER-GRID_LOWER)/2);
+    const pct=((l-GRID_LOWER)/(GRID_UPPER-GRID_LOWER))*100;
+    return `<div class="grid-level ${isSell?"sell-zone":"buy-zone"}"><span class="grid-price">$${l.toLocaleString()}</span><div class="grid-bar"><div class="grid-bar-fill ${isSell?"sell":""}" style="width:${pct}%"></div></div><span class="grid-tag">${isSell?"SELL":"BUY"}</span></div>`;
+  }).join("");
+}
+async function refresh() {
+  try {
+    const [s] = await query("bot_status","order=updated_at.desc&limit=1");
+    if(!s){document.getElementById("status-dot").className="dot offline";document.getElementById("status-text").textContent="ยังไม่มีข้อมูล";return;}
+    const on=s.state==="running";
+    document.getElementById("status-dot").className=`dot ${on?"":"offline"}`;
+    document.getElementById("status-text").textContent=on?"🟢 Online":"🔴 Offline";
+    document.getElementById("card-price").textContent="—";
+    document.getElementById("card-profit").textContent=s.profit_loss!=null?`$${(+s.profit_loss).toFixed(4)}`:"$0.0000";
+    document.getElementById("card-profit-pct").textContent=s.profit_loss!=null?`${((+s.profit_loss/CAPITAL)*100).toFixed(4)}% ของทุน`:"—";
+    document.getElementById("card-trades").textContent=s.grid_num??"—";
+    document.getElementById("card-orders").textContent=s.algo_state??"—";
+    document.getElementById("card-updated").textContent=s.updated_at?new Date(s.updated_at).toLocaleTimeString("th-TH"):"—";
+    document.getElementById("card-mode").textContent=`Leverage 3x | ทุน $${CAPITAL}${s.total_annualized_rate?" | APR "+(+s.total_annualized_rate).toFixed(2)+"%":""}`;
+    if(s.min_price&&s.max_price) document.getElementById("card-range").textContent=`Range: $${s.min_price} – $${s.max_price}`;
+    renderGrid(null);
+    const pnl=await query("pnl_daily","order=date.asc&limit=14");
+    if(pnl.length){pnlChart.data.labels=pnl.map(r=>r.date.slice(5));pnlChart.data.datasets[0].data=pnl.map(r=>+(+r.pnl).toFixed(4));pnlChart.update();}
+    const trades=await query("trades","order=created_at.desc&limit=20");
+    const tbody=document.getElementById("trades-tbody");
+    tbody.innerHTML=trades.length?trades.map(t=>{const pf=(+t.net_profit).toFixed(4);return`<tr><td style="color:#718096">${new Date(t.created_at).toLocaleString("th-TH",{hour12:false})}</td><td class="${t.side==="buy"?"buy":"sell"}">${t.side==="buy"?"🟢 BUY":"🔴 SELL"}</td><td>$${(+t.price).toLocaleString(undefined,{minimumFractionDigits:2})}</td><td>${(+t.eth_amount).toFixed(4)} ETH</td><td style="${+t.net_profit>=0?"color:#68d391":"color:#fc8181"}">$${pf}</td></tr>`}).join(""):`<tr><td colspan="5" style="color:#718096;text-align:center">ยังไม่มีเทรด</td></tr>`;
+  } catch(e){console.error(e);}
+}
+document.addEventListener("DOMContentLoaded",()=>{initChart();renderGrid(null);refresh();setInterval(refresh,10000);});
+</script>
+</body>
+</html>
