@@ -60,7 +60,7 @@ LEVERAGE      = os.environ.get("LEVERAGE",   "3")
 DIRECTION     = "long"
 RUN_TYPE      = "1"           # 1 = Arithmetic
 STOP_LOSS_PX  = os.environ.get("STOP_LOSS",  "1700")
-SZ            = os.environ.get("SZ",        "10")  # contracts (ETH-USDT-SWAP 1ct=0.01 ETH)
+SZ            = os.environ.get("SZ",       "100")  # used margin in USDT for contract_grid
 TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "1690"))
 
 
