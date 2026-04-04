@@ -561,7 +561,7 @@ async function query(table, params = "") {
   return res.json();
 }
 
-// &#9472;&#9472; Catppuccin chart colors &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+// \u2500\u2500 Catppuccin chart colors \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const C = {
   blue:   "#89b4fa",
   green:  "#a6e3a1",
@@ -574,7 +574,7 @@ const C = {
   text:   "#cdd6f4",
 };
 
-// &#9472;&#9472; PnL Chart &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+// \u2500\u2500 PnL Chart \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 let pnlChart;
 
 function initChart() {
@@ -625,16 +625,16 @@ function initChart() {
   });
 }
 
-// &#9472;&#9472; Main Refresh &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+// \u2500\u2500 Main Refresh \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 async function refresh() {
   try {
 
-    // &#9472;&#9472; 1. Bot Status &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+    // \u2500\u2500 1. Bot Status \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     const rows = await query("bot_status", "order=updated_at.desc&limit=1");
     const s = rows[0];
 
     if (!s) {
-      setOffline("&#3618;&#3633;&#3591;&#3652;&#3617;&#3656;&#3617;&#3637;&#3586;&#3657;&#3629;&#3617;&#3641;&#3621;");
+      setOffline("\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25");
       return;
     }
 
@@ -643,54 +643,54 @@ async function refresh() {
     dot.className = "status-dot" + (isRunning ? " pulse" : " offline");
 
     document.getElementById("sidebar-status-text").textContent =
-      isRunning ? "&#128994; Bot &#3585;&#3635;&#3621;&#3633;&#3591;&#3607;&#3635;&#3591;&#3634;&#3609;" : "&#128308; Bot &#3627;&#3618;&#3640;&#3604;&#3607;&#3635;&#3591;&#3634;&#3609;";
+      isRunning ? "\u1f7e2 Bot \u0e01\u0e33\u0e25\u0e31\u0e07\u0e17\u0e33\u0e07\u0e32\u0e19" : "\u1f534 Bot \u0e2b\u0e22\u0e38\u0e14\u0e17\u0e33\u0e07\u0e32\u0e19";
 
     // KPI: Status
     document.getElementById("kpi-status").textContent =
-      isRunning ? "&#128994; RUNNING" : "&#128308; OFFLINE";
+      isRunning ? "\u1f7e2 RUNNING" : "\u1f534 OFFLINE";
     document.getElementById("kpi-state").textContent =
-      `algo_state: ${s.algo_state ?? "&#8212;"}`;
+      `algo_state: ${s.algo_state ?? "\u2014"}`;
 
     // KPI: Profit
     const profit = s.profit_loss != null ? +s.profit_loss : null;
     document.getElementById("kpi-profit").textContent =
-      profit != null ? `$${profit.toFixed(4)}` : "&#8212;";
+      profit != null ? `$${profit.toFixed(4)}` : "\u2014";
     document.getElementById("kpi-profit-pct").textContent =
-      profit != null ? `${((profit / CAPITAL) * 100).toFixed(4)}% &#3586;&#3629;&#3591;&#3607;&#3640;&#3609;` : "&#8212;";
+      profit != null ? `${((profit / CAPITAL) * 100).toFixed(4)}% \u0e02\u0e2d\u0e07\u0e17\u0e38\u0e19` : "\u2014";
 
     // KPI: APR
     const apr = s.total_annualized_rate != null ? +s.total_annualized_rate : null;
     document.getElementById("kpi-apr").textContent =
-      apr != null ? `${apr.toFixed(2)}%` : "&#8212;";
+      apr != null ? `${apr.toFixed(2)}%` : "\u2014";
 
     // KPI: Updated
     const updAt = s.updated_at ? new Date(s.updated_at) : null;
     const updStr = updAt
       ? updAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-      : "&#8212;";
+      : "\u2014";
     document.getElementById("kpi-updated").textContent = updStr;
     document.getElementById("last-updated").textContent =
-      updAt ? updAt.toLocaleString("th-TH") : "&#8212;";
+      updAt ? updAt.toLocaleString("th-TH") : "\u2014";
 
     // Param cards
     if (s.min_price && s.max_price)
       document.getElementById("param-range").textContent =
-        `$${(+s.min_price).toLocaleString()} &#8211; $${(+s.max_price).toLocaleString()}`;
+        `$${(+s.min_price).toLocaleString()} \u2013 $${(+s.max_price).toLocaleString()}`;
     if (s.grid_num)
       document.getElementById("param-grids").textContent = `${s.grid_num} levels`;
 
     // Status bar
     document.getElementById("sb-profit").textContent =
-      profit != null ? `${profit >= 0 ? "+" : ""}${profit.toFixed(4)} USDT` : "&#8212;";
+      profit != null ? `${profit >= 0 ? "+" : ""}${profit.toFixed(4)} USDT` : "\u2014";
     document.getElementById("sb-apr").textContent =
-      apr != null ? `${apr.toFixed(4)}%` : "&#8212;";
-    document.getElementById("sb-algostate").textContent = s.algo_state ?? "&#8212;";
-    document.getElementById("sb-gridnum").textContent   = s.grid_num ?? "&#8212;";
-    document.getElementById("sb-state").textContent     = s.state ?? "&#8212;";
+      apr != null ? `${apr.toFixed(4)}%` : "\u2014";
+    document.getElementById("sb-algostate").textContent = s.algo_state ?? "\u2014";
+    document.getElementById("sb-gridnum").textContent   = s.grid_num ?? "\u2014";
+    document.getElementById("sb-state").textContent     = s.state ?? "\u2014";
     document.getElementById("sb-updated").textContent   =
-      s.updated_at ? new Date(s.updated_at).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "&#8212;";
+      s.updated_at ? new Date(s.updated_at).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "\u2014";
 
-    // &#9472;&#9472; 2. Daily PnL Chart &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+    // \u2500\u2500 2. Daily PnL Chart \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     try {
       const pnlRows = await query("pnl_daily", "order=date.asc&limit=14");
       if (pnlRows.length) {
@@ -702,13 +702,13 @@ async function refresh() {
       console.warn("pnl_daily:", e.message);
     }
 
-    // &#9472;&#9472; 3. Recent Trades &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+    // \u2500\u2500 3. Recent Trades \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     try {
       const trades = await query("trades", "order=created_at.desc&limit=15");
       const tbody  = document.getElementById("trades-tbody");
       if (!trades.length) {
         tbody.innerHTML =
-          `<tr class="empty-row"><td colspan="4">&#3618;&#3633;&#3591;&#3652;&#3617;&#3656;&#3617;&#3637;&#3648;&#3607;&#3619;&#3604;</td></tr>`;
+          `<tr class="empty-row"><td colspan="4">\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e40\u0e17\u0e23\u0e14</td></tr>`;
       } else {
         tbody.innerHTML = trades.map(t => {
           const time    = new Date(t.created_at)
@@ -718,10 +718,10 @@ async function refresh() {
           const pfStr   = pf != null
             ? `<span style="color:${pf >= 0 ? "var(--green)" : "var(--red)"}">
                  $${pf.toFixed(4)}</span>`
-            : "&#8212;";
+            : "\u2014";
           const price   = t.price != null
             ? `$${(+t.price).toLocaleString(undefined, {minimumFractionDigits:2})}`
-            : "&#8212;";
+            : "\u2014";
           return `<tr>
             <td style="color:var(--overlay);font-size:0.75rem">${time}</td>
             <td><span class="badge ${isBuy ? "buy" : "sell"}">${isBuy ? "BUY" : "SELL"}</span></td>
@@ -736,7 +736,7 @@ async function refresh() {
 
   } catch (err) {
     console.error("refresh error:", err);
-    setOffline("&#3648;&#3594;&#3639;&#3656;&#3629;&#3617;&#3605;&#3656;&#3629;&#3652;&#3617;&#3656;&#3652;&#3604;&#3657;");
+    setOffline("\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49");
   }
 }
 
@@ -746,7 +746,7 @@ function setOffline(msg) {
   document.getElementById("sidebar-status-text").textContent = msg;
 }
 
-// &#9472;&#9472; Init &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+// \u2500\u2500 Init \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 document.addEventListener("DOMContentLoaded", () => {
   initChart();
   refresh();
