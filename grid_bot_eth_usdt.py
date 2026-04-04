@@ -14,7 +14,7 @@ Flow:
   - หยุด Grid : รัน MODE=stop   → สั่ง OKX ปิด Grid (1 ครั้ง)
 
 วิธีตั้งค่า MODE:
-  Environment variable: MODE=hstart | monitor | stop
+  Environment variable: MODE=start | monitor | stop
   หรือ default = "monitor"
 """
 
@@ -91,8 +91,8 @@ class DB:
             "inst_id":    INST_ID,
             "side":       t.get("side", ""),
             "price":      float(t.get("avgPx") or t.get("px") or 0),
-            "size":       float(t.get("sz", 0)),
-            "profit":     float(t.get("pnl", 0)),
+            "size":       float(t.get("sz") or 0),
+            "profit":     float(t.get("pnl") or 0),
             "state":      t.get("state", ""),
             "created_at": datetime.now(timezone.utc).isoformat(),
         } for t in trades]
