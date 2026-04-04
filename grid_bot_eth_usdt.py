@@ -24,7 +24,7 @@ import logging
 from datetime import datetime, timezone, date
 
 try:
-    import okx.Grid as Grid
+    import okx.GridTrading as GridTrading
     import okx.MarketData as MarketData
 except ImportError:
     print("❌ กรุณาติดตั้ง: pip install python-okx")
@@ -60,7 +60,6 @@ LEVERAGE      = os.environ.get("LEVERAGE",   "3")
 DIRECTION     = "long"
 RUN_TYPE      = "1"           # 1 = Arithmetic
 STOP_LOSS_PX  = os.environ.get("STOP_LOSS",  "1700")
-SZ            = os.environ.get("SZ",       "100")  # used margin in USDT for contract_grid
 TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "1690"))
 
 
@@ -91,12 +90,11 @@ class DB:
             "inst_id":    INST_ID,
             "side":       t.get("side", ""),
             "price":      float(t.get("avgPx") or t.get("px") or 0),
-            "size":       float(t.get("sz") or 0),
-            "profit":     float(t.get("pnl") or 0),
+            "size":       float(t.get("sz", 0)),
+            "profit":     float(t.get("pnl", 0)),
             "state":      t.get("state", ""),
             "created_at": datetime.now(timezone.utc).isoformat(),
         } for t in trades]
-        rows = list({r["order_id"]: r for r in rows}.values())
         self.client.table("trades").upsert(rows, on_conflict="order_id").execute()
         return len(rows)
 
@@ -120,10 +118,11 @@ class DB:
         }, on_conflict="bot_id").execute()
 
     def get_algo_id(self) -> str:
-        """ดึง algo_id ล่าสุดจาก Supabase"""
+        """ดึง algo_id ล่าสุดจาก Supabase (กรอง leverage เดียวกัน)"""
         res = self.client.table("bot_status") \
                   .select("bot_id") \
                   .eq("inst_id", INST_ID) \
+                  .eq("leverage", int(LEVERAGE)) \
                   .order("updated_at", desc=True) \
                   .limit(1).execute()
         if res.data:
@@ -147,7 +146,7 @@ class DB:
             "pnl":         pnl,
             "trade_count": trade_count,
             "updated_at":  datetime.now(timezone.utc).isoformat(),
-        }, on_conflict="bot_id,date").execute()
+        }).execute()
 
 
 # ============================================================
@@ -155,8 +154,8 @@ class DB:
 # ============================================================
 class GridManager:
     def __init__(self):
-        self.grid_api   = Grid.GridAPI(
-                            API_KEY, API_SECRET, PASSPHRASE, flag=FLAG)
+        self.grid_api   = GridTrading.GridTradingAPI(
+                            API_KEY, API_SECRET, PASSPHRASE, False, FLAG)
         self.market_api = MarketData.MarketAPI(flag=FLAG)
         self.db         = DB()
 
@@ -170,12 +169,14 @@ class GridManager:
         return 0.0
 
     def get_running_algo_id(self) -> str:
-        """ตรวจว่ามี Grid รันอยู่บน OKX ไหม"""
+        """ตรวจว่ามี Grid leverage เดิมรันอยู่บน OKX ไหม"""
         try:
-            res = self.grid_api.grid_orders_algo_pending(
+            res = self.grid_api.get_grid_algo_order_list(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0" and res["data"]:
-                return res["data"][0]["algoId"]
+                for algo in res["data"]:
+                    if str(algo.get("lever", "")) == str(LEVERAGE):
+                        return algo["algoId"]
         except Exception as e:
             log.error(f"get_running_algo_id: {e}")
         return ""
@@ -216,12 +217,13 @@ class GridManager:
             "runType":     RUN_TYPE,
             "direction":   DIRECTION,
             "lever":       LEVERAGE,
-            "sz":          SZ,
         }
         if STOP_LOSS_PX:
             params["slTriggerPx"] = STOP_LOSS_PX
+            params["slOrdPx"]     = "-1"
+
         try:
-            res = self.grid_api.grid_order_algo(**params)
+            res = self.grid_api.place_grid_algo_order(**params)
             if res["code"] == "0":
                 algo_id = res["data"][0]["algoId"]
                 log.info(f"✅ OKX เปิด Grid สำเร็จ!")
@@ -230,7 +232,7 @@ class GridManager:
                 # บันทึก algo_id ลง Supabase
                 self.db.update_status(algo_id, "running", price, 0.0, 0)
             else:
-                log.error(f"❌ เปิด Grid ไม่ได้: code={res.get('code')} msg={res.get('msg')} data={res.get('data')}")
+                log.error(f"❌ เปิด Grid ไม่ได้: {res.get('msg')}")
                 sys.exit(1)
         except Exception as e:
             log.error(f"cmd_start error: {e}")
@@ -256,7 +258,7 @@ class GridManager:
         # ดึงสถานะ Grid จาก OKX
         state = "running"
         try:
-            res = self.grid_api.grid_orders_algo_pending(
+            res = self.grid_api.get_grid_algo_order_list(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0":
                 found = next((d for d in res["data"]
@@ -274,7 +276,7 @@ class GridManager:
         # ดึง trades ที่ filled ใหม่
         new_trades = []
         try:
-            res = self.grid_api.grid_sub_orders(
+            res = self.grid_api.get_grid_algo_sub_orders(
                 algoId=algo_id,
                 algoOrdType="contract_grid",
                 type="filled"
@@ -314,7 +316,7 @@ class GridManager:
             return
 
         try:
-            res = self.grid_api.grid_stop_order_algo(
+            res = self.grid_api.stop_grid_algo_order(
                 algoId=algo_id,
                 instId=INST_ID,
                 algoOrdType="contract_grid",
