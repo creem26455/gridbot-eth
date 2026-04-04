@@ -130,6 +130,23 @@
     /* Error box */
     .error-box { background: rgba(243,139,168,0.1); border: 1px solid var(--red); border-radius: 10px; padding: 14px 18px; color: var(--red); margin-bottom: 20px; display: none; }
 
+    /* Stock search */
+    .search-row { display:flex; gap:6px; margin-bottom:8px; }
+    .search-row input { flex:1; background:var(--surf0); border:1px solid var(--surf1); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; }
+    .search-row input:focus { outline:none; border-color:var(--blue); }
+    .search-row input::placeholder { color:var(--overlay); font-size:11px; }
+    .search-row button { background:var(--surf0); border:1px solid var(--surf1); border-radius:6px; padding:7px 10px; color:var(--blue); cursor:pointer; font-size:14px; transition:background 0.15s; }
+    .search-row button:hover { background:var(--surf1); }
+
+    /* Chips */
+    .chips-wrap { display:flex; flex-wrap:wrap; gap:4px; max-height:190px; overflow-y:auto; margin-bottom:4px; padding-right:2px; }
+    .chips-wrap::-webkit-scrollbar { width:4px; }
+    .chips-wrap::-webkit-scrollbar-track { background:transparent; }
+    .chips-wrap::-webkit-scrollbar-thumb { background:var(--surf1); border-radius:2px; }
+    .chip { background:var(--surf0); border:1.5px solid transparent; border-radius:5px; padding:3px 8px; font-size:11px; font-weight:600; color:var(--subtext); cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+    .chip:hover { border-color:var(--blue); color:var(--text); }
+    .chip.active { background:var(--surf1); border-color:var(--mauve); color:var(--mauve); }
+
     /* Responsive */
     @media (max-width: 900px) {
       .app { flex-direction: column; }
@@ -190,6 +207,13 @@
         <span class="sub">Ripple</span>
       </button>
     </div>
+
+    <div class="section-title">&#127482;&#127480; &#3627;&#3640;&#3657;&#3609;&#3629;&#3648;&#3617;&#3619;&#3636;&#3585;&#3634; US Stocks (Top 100)</div>
+    <div class="search-row">
+      <input type="text" id="tickerSearch" placeholder="&#3614;&#3636;&#3617;&#3614;&#3660; Ticker &#3648;&#3594;&#3656;&#3609; META, JPM, NFLX..." onkeydown="if(event.key==='Enter')searchTicker()">
+      <button onclick="searchTicker()">&#128269;</button>
+    </div>
+    <div class="chips-wrap" id="stockChips"></div>
 
     <div class="section-title">&#128197; &#3594;&#3656;&#3623;&#3591;&#3648;&#3623;&#3621;&#3634;</div>
     <div class="period-row" id="periodRow">
@@ -343,9 +367,71 @@ let selectedAsset = { id:'ethereum', sym:'ETH/USDT', type:'crypto', yf:'' };
 let selectedDays = 180;
 let charts = {};
 
+// ===== TOP 100 US STOCKS BY MARKET CAP =====
+const TOP100_STOCKS = [
+  'AAPL','NVDA','MSFT','AMZN','GOOGL','META','TSLA','AVGO','BRK-B','WMT',
+  'JPM','LLY','V','ORCL','UNH','XOM','MA','COST','HD','NFLX',
+  'ABBV','JNJ','BAC','PG','AMD','TMUS','KO','CRM','PM','CSCO',
+  'AXP','PEP','MRK','IBM','ADBE','MCD','GS','WFC','GE','T',
+  'MS','CAT','RTX','ISRG','NOW','AMGN','INTU','TXN','BKNG','SPGI',
+  'QCOM','BSX','ACN','DE','UBER','AMAT','LOW','BLK','SYK','VRTX',
+  'PLD','ELV','CB','PANW','NKE','SHW','REGN','CME','ADI','MU',
+  'LMT','GILD','LRCX','ICE','BA','SO','UPS','CL','PFE','FI',
+  'DUK','MCO','WM','SBUX','KLAC','ADP','CDNS','SNPS','EQIX','MSI',
+  'APH','ZTS','CVS','MCK','F','GM','INTC','NEE','TT','MMM'
+];
+
+// Crypto quick-map for search box
+const CRYPTO_MAP = {
+  'ETH': 'ethereum', 'BTC': 'bitcoin', 'SOL': 'solana',
+  'BNB': 'binancecoin', 'XRP': 'ripple'
+};
+
+function initStockChips() {
+  const wrap = document.getElementById('stockChips');
+  TOP100_STOCKS.forEach((ticker, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.textContent = ticker;
+    btn.dataset.ticker = ticker;
+    btn.title = '#' + (idx + 1) + ' by Market Cap';
+    btn.onclick = () => selectStock(ticker, btn);
+    wrap.appendChild(btn);
+  });
+}
+
+function selectStock(ticker, chipEl) {
+  document.querySelectorAll('.asset-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  if (chipEl) chipEl.classList.add('active');
+  selectedAsset = { id: ticker, sym: ticker, type: 'yf', yf: ticker };
+  document.getElementById('mainSubtitle').textContent = ticker + ' | ' + selectedDays + ' \u0e27\u0e31\u0e19';
+}
+
+function searchTicker() {
+  const input = document.getElementById('tickerSearch');
+  const raw = input.value.trim().toUpperCase();
+  if (!raw) return;
+
+  // ถ้าเป็น crypto
+  if (CRYPTO_MAP[raw]) {
+    const matchBtn = document.querySelector(`.asset-btn[data-id="${CRYPTO_MAP[raw]}"]`);
+    if (matchBtn) { selectAsset(matchBtn); input.value = ''; return; }
+  }
+
+  // ถ้าอยู่ใน top 100 chips
+  const chipEl = document.querySelector(`.chip[data-ticker="${raw}"]`);
+  selectStock(raw, chipEl);
+  if (chipEl) chipEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  input.value = '';
+}
+
+window.addEventListener('DOMContentLoaded', initStockChips);
+
 // ===== ASSET / PERIOD SELECTION =====
 function selectAsset(btn) {
   document.querySelectorAll('.asset-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
   selectedAsset = {
     id: btn.dataset.id,
