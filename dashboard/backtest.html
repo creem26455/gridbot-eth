@@ -88,7 +88,8 @@
     .empty-state h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
 
     /* KPI cards */
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 20px; }
+    .kpi-mauve { color: var(--mauve); }
     .kpi-card { background: var(--mantle); border-radius: 12px; padding: 16px; border-left: 3px solid var(--surf1); }
     .kpi-card.positive { border-left-color: var(--green); }
     .kpi-card.negative { border-left-color: var(--red); }
@@ -148,6 +149,9 @@
     .chip.active { background:var(--surf1); border-color:var(--mauve); color:var(--mauve); }
 
     /* Responsive */
+    @media (max-width: 1200px) {
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    }
     @media (max-width: 900px) {
       .app { flex-direction: column; }
       .sidebar { width: 100%; }
@@ -310,6 +314,18 @@
           <div class="kpi-value" id="kpi-dd">—</div>
           <div class="kpi-sub">&#3614;&#3609;&#3633;&#3585;&#3604;&#3641;&#3610;&#3617;&#3634;&#3585;&#3607;&#3637;&#3656;&#3626;&#3640;&#3604;</div>
         </div>
+        <div class="kpi-card" id="card-sharpe" style="border-left-color:var(--mauve)">
+          <div class="kpi-label">&#9889; Sharpe Ratio</div>
+          <div class="kpi-value kpi-mauve" id="kpi-sharpe">—</div>
+          <div class="kpi-sub" id="kpi-sharpe-sub">Risk-adjusted return</div>
+        </div>
+      </div>
+
+      <!-- Download Log button -->
+      <div style="text-align:right; margin-bottom:16px;">
+        <button onclick="downloadLog()" style="background:var(--surf0);border:1px solid var(--surf1);border-radius:8px;padding:8px 16px;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='var(--surf1)'" onmouseout="this.style.background='var(--surf0)'">
+          &#128229; Download Backtest Log (.md)
+        </button>
       </div>
 
       <!-- Charts row 1 -->
@@ -577,12 +593,26 @@ function simulateGridBot(priceData, params) {
   const totalReturn = (cumulativePnl / capital) * 100;
   const annualizedReturn = totalReturn * (365 / selectedDays);
 
+  // ===== Sharpe Ratio =====
+  const dailyReturns = pnlByDay.map((d, i) => {
+    if (i === 0) return 0;
+    const prevEq = capital + pnlByDay[i - 1].pnl;
+    const currEq = capital + d.pnl;
+    return prevEq > 0 ? (currEq - prevEq) / prevEq : 0;
+  });
+  const avgRet = dailyReturns.reduce((a, b) => a + b, 0) / (dailyReturns.length || 1);
+  const variance = dailyReturns.reduce((a, b) => a + Math.pow(b - avgRet, 2), 0) / (dailyReturns.length || 1);
+  const stdDev = Math.sqrt(variance);
+  const riskFreeDaily = 0.05 / 252; // 5% annual risk-free rate
+  const sharpeRatio = stdDev > 0 ? ((avgRet - riskFreeDaily) / stdDev) * Math.sqrt(252) : 0;
+
   return {
     totalPnl: cumulativePnl,
     totalReturn,
     annualizedReturn,
     totalTrades: trades.length,
     maxDrawdown,
+    sharpeRatio,
     levels,
     priceData,
     pnlByDay,
@@ -618,6 +648,12 @@ function renderResults(r, params) {
   ddEl.textContent = '-' + r.maxDrawdown.toFixed(2) + '%';
   ddEl.className = 'kpi-value ' + (r.maxDrawdown > 20 ? 'red' : r.maxDrawdown > 10 ? 'yellow' : 'green');
   document.getElementById('card-dd').className = 'kpi-card ' + (r.maxDrawdown > 20 ? 'negative' : 'neutral');
+
+  const sharpeEl = document.getElementById('kpi-sharpe');
+  sharpeEl.textContent = r.sharpeRatio.toFixed(2);
+  sharpeEl.className = 'kpi-value kpi-mauve';
+  const sharpeLabel = r.sharpeRatio >= 2 ? '\u0e14\u0e35\u0e21\u0e32\u0e01 (>2)' : r.sharpeRatio >= 1 ? '\u0e14\u0e35 (>1)' : r.sharpeRatio >= 0 ? '\u0e1e\u0e2d\u0e43\u0e0a\u0e49\u0e44\u0e14\u0e49' : '\u0e15\u0e48\u0e33\u0e01\u0e27\u0e48\u0e32\u0e40\u0e01\u0e13\u0e11\u0e4c';
+  document.getElementById('kpi-sharpe-sub').textContent = sharpeLabel + ' | rf=5%/y';
 
   // Destroy old charts
   Object.values(charts).forEach(c => c.destroy());
@@ -751,6 +787,8 @@ async function runBacktest() {
     };
 
     const result = simulateGridBot(priceData, params);
+    lastResult = result;
+    lastParams = params;
     renderResults(result, params);
 
     document.getElementById('emptyState').style.display = 'none';
@@ -779,6 +817,63 @@ async function runBacktest() {
 
 function setProgress(pct, msg) {
   document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ===== DOWNLOAD LOG (.md) =====
+let lastResult = null;
+let lastParams = null;
+
+function downloadLog() {
+  if (!lastResult || !lastParams) {
+    alert('\u0e01\u0e23\u0e38\u0e13\u0e32 Run Backtest \u0e01\u0e48\u0e2d\u0e19\u0e04\u0e23\u0e31\u0e1a');
+    return;
+  }
+  const r = lastResult;
+  const p = lastParams;
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const timeStr = now.toTimeString().slice(0, 8);
+  const sym = selectedAsset.sym;
+  const pnlSign = r.totalPnl >= 0 ? '+' : '';
+  const retSign = r.totalReturn >= 0 ? '+' : '';
+
+  const sharpeGrade = r.sharpeRatio >= 2 ? '\u0e14\u0e35\u0e21\u0e32\u0e01' : r.sharpeRatio >= 1 ? '\u0e14\u0e35' : r.sharpeRatio >= 0 ? '\u0e1e\u0e2d\u0e43\u0e0a\u0e49\u0e44\u0e14\u0e49' : '\u0e15\u0e48\u0e33';
+
+  const md = `# Backtest Log — ${sym}
+> Generated: ${dateStr} ${timeStr}
+
+## Parameters
+| \u0e2a\u0e34\u0e19\u0e17\u0e23\u0e31\u0e1e\u0e22\u0e4c | \u0e0a\u0e48\u0e27\u0e07\u0e40\u0e27\u0e25\u0e32 | \u0e17\u0e38\u0e19 | Grid Spacing | Grids | Leverage | Fee |
+|--------|----------|------|-------------|-------|----------|-----|
+| ${sym} | ${selectedDays} \u0e27\u0e31\u0e19 | $${Number(p.capital).toLocaleString()} | ${p.spacing.toFixed(1)}% | ${p.grids} | ${p.leverage}x | ${p.fee.toFixed(2)}% |
+
+## Results
+| Metric | Value | \u0e1b\u0e23\u0e30\u0e40\u0e21\u0e34\u0e19 |
+|--------|-------|--------|
+| \u0e01\u0e33\u0e44\u0e23/\u0e02\u0e32\u0e14\u0e17\u0e38\u0e19 (Net PnL) | ${pnlSign}$${r.totalPnl.toFixed(2)} | ${r.totalPnl >= 0 ? '\u2705 \u0e01\u0e33\u0e44\u0e23' : '\u274c \u0e02\u0e32\u0e14\u0e17\u0e38\u0e19'} |
+| \u0e1c\u0e25\u0e15\u0e2d\u0e1a\u0e41\u0e17\u0e19\u0e23\u0e27\u0e21 | ${retSign}${r.totalReturn.toFixed(2)}% | — |
+| APY (\u0e1b\u0e23\u0e30\u0e21\u0e32\u0e13\u0e15\u0e48\u0e2d\u0e1b\u0e35) | ${retSign}${r.annualizedReturn.toFixed(1)}% | — |
+| Sharpe Ratio | ${r.sharpeRatio.toFixed(2)} | ${sharpeGrade} (rf=5%/y) |
+| Max Drawdown | -${r.maxDrawdown.toFixed(2)}% | ${r.maxDrawdown > 20 ? '\u26a0\ufe0f \u0e2a\u0e39\u0e07' : r.maxDrawdown > 10 ? '\u26a0\ufe0f \u0e1b\u0e32\u0e19\u0e01\u0e25\u0e32\u0e07' : '\u2705 \u0e15\u0e48\u0e33'} |
+| \u0e08\u0e33\u0e19\u0e27\u0e19 Trades | ${r.totalTrades.toLocaleString()} | \u0e40\u0e09\u0e25\u0e35\u0e48\u0e22 ${(r.totalTrades / selectedDays).toFixed(1)} trade/\u0e27\u0e31\u0e19 |
+
+## Trade Log (\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14 20 \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23)
+| # | \u0e27\u0e31\u0e19\u0e17\u0e35\u0e48 | Buy Price | Sell Price | \u0e01\u0e33\u0e44\u0e23 (USD) |
+|---|------|-----------|------------|------------|
+${r.trades.slice(-20).reverse().map((t, i) =>
+  `| ${r.trades.length - i} | ${t.date} | $${t.buyPrice.toFixed(2)} | $${t.sellPrice.toFixed(2)} | ${t.profit >= 0 ? '+' : ''}$${t.profit.toFixed(4)} |`
+).join('\n')}
+
+---
+*Grid Bot Backtester — gridbot-eth.vercel.app/backtest.html*
+`;
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `backtest_${sym.replace('/','_')}_${dateStr}.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 </script>
 </body>
