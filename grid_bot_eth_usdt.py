@@ -217,6 +217,7 @@ class GridManager:
             "runType":     RUN_TYPE,
             "direction":   DIRECTION,
             "lever":       LEVERAGE,
+            "sz":          str(int(TOTAL_CAPITAL)),
         }
         if STOP_LOSS_PX:
             params["slTriggerPx"] = STOP_LOSS_PX
