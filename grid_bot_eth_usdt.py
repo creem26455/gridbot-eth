@@ -170,8 +170,8 @@ class GridManager:
     def get_running_algo_id(self) -> str:
         """ตรวจว่ามี Grid รันอยู่บน OKX ไหม"""
         try:
-                        res = self.grid_api.grid_orders_algo_pending(
-                                          algoOrdType="contract_grid", instId=INST_ID)
+            res = self.grid_api.grid_orders_algo_pending(
+                algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0" and res["data"]:
                 return res["data"][0]["algoId"]
         except Exception as e:
@@ -218,7 +218,7 @@ class GridManager:
         if STOP_LOSS_PX:
             params["slTriggerPx"] = STOP_LOSS_PX
         try:
-                        res = self.grid_api.grid_order_algo(**params)
+            res = self.grid_api.grid_order_algo(**params)
             if res["code"] == "0":
                 algo_id = res["data"][0]["algoId"]
                 log.info(f"✅ OKX เปิด Grid สำเร็จ!")
@@ -253,8 +253,8 @@ class GridManager:
         # ดึงสถานะ Grid จาก OKX
         state = "running"
         try:
-                        res = self.grid_api.grid_orders_algo_pending(
-                                          algoOrdType="contract_grid", instId=INST_ID)
+            res = self.grid_api.grid_orders_algo_pending(
+                algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0":
                 found = next((d for d in res["data"]
                               if d["algoId"] == algo_id), None)
@@ -271,11 +271,11 @@ class GridManager:
         # ดึง trades ที่ filled ใหม่
         new_trades = []
         try:
-                        res = self.grid_api.grid_sub_orders(
-                                          algoId=algo_id,
-                                          algoOrdType="contract_grid",
-                                          type="filled"
-                        )
+            res = self.grid_api.grid_sub_orders(
+                algoId=algo_id,
+                algoOrdType="contract_grid",
+                type="filled"
+            )
             if res["code"] == "0":
                 new_trades = res.get("data", [])
         except Exception as e:
@@ -311,12 +311,12 @@ class GridManager:
             return
 
         try:
-                        res = self.grid_api.grid_stop_order_algo(
-                                          algoId=algo_id,
-                                          instId=INST_ID,
-                                          algoOrdType="contract_grid",
-                                          stopType="1"
-                        )
+            res = self.grid_api.grid_stop_order_algo(
+                algoId=algo_id,
+                instId=INST_ID,
+                algoOrdType="contract_grid",
+                stopType="1"
+            )
             if res["code"] == "0":
                 log.info(f"✅ หยุด Grid สำเร็จ | Algo ID: {algo_id}")
                 self.db.update_status(algo_id, "stopped",
