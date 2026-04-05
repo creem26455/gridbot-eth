@@ -36,6 +36,8 @@ jobs:
           OKX_FLAG:       ${{ secrets.OKX_FLAG }}
           SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
           MODE:           monitor
           LEVERAGE:       ${{ matrix.leverage }}
         run: python grid_bot_eth_usdt.py

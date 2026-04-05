@@ -58,6 +58,8 @@ jobs:
           OKX_FLAG:       ${{ secrets.OKX_FLAG }}
           SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
           MODE:           monitor
           LEVERAGE:       ${{ matrix.leverage }}
         run: python test_trend_bot.py
@@ -94,6 +96,8 @@ jobs:
           OKX_FLAG:       ${{ secrets.OKX_FLAG }}
           SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
           MODE:           ${{ github.event.inputs.mode }}
           LEVERAGE:       ${{ matrix.leverage }}
         run: python test_trend_bot.py
@@ -124,6 +128,8 @@ jobs:
           OKX_FLAG:       ${{ secrets.OKX_FLAG }}
           SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
           MODE:           ${{ github.event.inputs.mode }}
           LEVERAGE:       ${{ github.event.inputs.leverage }}
         run: python test_trend_bot.py
