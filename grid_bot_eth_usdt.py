@@ -26,7 +26,7 @@ import requests
 from datetime import datetime, timezone, date
 
 try:
-    import okx.GridTrading as GridTrading
+    import okx.Grid as GridTrading
     import okx.MarketData as MarketData
 except ImportError:
     print("❌ กรุณาติดตั้ง: pip install python-okx")
@@ -203,7 +203,7 @@ class DB:
 # ============================================================
 class GridManager:
     def __init__(self):
-        self.grid_api   = GridTrading.GridTradingAPI(
+        self.grid_api   = GridTrading.GridAPI(
                             API_KEY, API_SECRET, PASSPHRASE, False, FLAG)
         self.market_api = MarketData.MarketAPI(flag=FLAG)
         self.db         = DB()
