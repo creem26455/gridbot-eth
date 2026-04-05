@@ -139,7 +139,7 @@ class DB:
         return total, len(trades)
 
     def save_daily_pnl(self, algo_id: str, pnl: float, trade_count: int):
-      2 today = date.today().isoformat()
+        today = date.today().isoformat()
         self.client.table("pnl_daily").upsert({
             "bot_id":      algo_id,
             "date":        today,
