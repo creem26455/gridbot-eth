@@ -13,7 +13,7 @@ Flow:
   - ทุก 1 นาที: รัน MODE=monitor → ดึงข้อมูล OKX → บันทึก Supabase → จบ
   - หยุด Grid : รัน MODE=stop   → สั่ง OKX ปิด Grid (1 ครั้ง)
 
-วิธีตั้งค่า MODE:
+วิธีตั้งค่า MODE:h
   Environment variable: MODE=start | monitor | stop
   หรือ default = "monitor"
 """
@@ -148,7 +148,7 @@ class DB:
             "pnl":         pnl,
             "trade_count": trade_count,
             "updated_at":  datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        }, on_conflict="bot_id,date").execute()
 
 
 # ============================================================
