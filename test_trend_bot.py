@@ -54,7 +54,7 @@ BOT_TAG       = "trend_v1"                          # แยกจาก grid bo
 INST_ID       = "ETH-USDT-SWAP"
 GRID_COUNT    = "25"
 RUN_TYPE      = "1"           # 1 = Arithmetic
-TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "1600"))
+TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "200"))
 
 # Stop Loss offset ตาม leverage (ยิ่ง leverage สูง SL ใกล้ขึ้น)
 SL_OFFSET = {"2": 0.12, "3": 0.10, "5": 0.08}
