@@ -351,7 +351,7 @@ class GridManager:
         except Exception as e:
             log.error(f"get state error: {e}")
 
-        log.info(f"  💲 ETH: ${price:,.2f} | State: {state}")
+        log.info(f"  💲 ETH: ${price:,.2f} | State: {state}")
 
         # ── AUTO-RESTART LOGIC ─────────────────────────────────
         if state == "stopped":
