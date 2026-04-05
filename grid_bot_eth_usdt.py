@@ -3,28 +3,30 @@
 """
 ╔══════════════════════════════════════════════════════════════╗
 ║         ETH/USDT Grid Bot — OKX Built-in Grid API           ║
-║         Deploy: Google Cloud Run + Cloud Scheduler          ║
+║         Deploy: GitHub Actions (cron ทุก 5 นาที)            ║
 ║         Mode  : Single-run (ไม่มี while loop)               ║
-║                 Cloud Scheduler เรียกทุก 1 นาที             ║
+║                                                              ║
+║  Features:                                                   ║
+║   ✅ Auto-restart เมื่อ OKX หยุดบอทโดยไม่ตั้งใจ            ║
+║   ✅ Telegram แจ้งเตือนทันทีเมื่อบอทหยุด/restart/start    ║
+║   ✅ should_run flag ป้องกัน restart เมื่อหยุดแบบตั้งใจ    ║
+║   ✅ ตรวจสอบราคาก่อน restart (ป้องกัน Stop Loss loop)      ║
 ╚══════════════════════════════════════════════════════════════╝
 
 Flow:
-  - ครั้งแรก : รัน MODE=start  → สั่ง OKX เปิด Grid (1 ครั้ง)
-  - ทุก 1 นาที: รัน MODE=monitor → ดึงข้อมูล OKX → บันทึก Supabase → จบ
-  - หยุด Grid : รัน MODE=stop   → สั่ง OKX ปิด Grid (1 ครั้ง)
-
-วิธีตั้งค่า MODE:h
-  Environment variable: MODE=start | monitor | stop
-  หรือ default = "monitor"
+  - ครั้งแรก : รัน MODE=start   → สั่ง OKX เปิด Grid + แจ้ง Telegram
+  - ทุก 5 นาที: รัน MODE=monitor → ตรวจสถานะ → ถ้าหยุด → restart อัตโนมัติ
+  - หยุด Grid : รัน MODE=stop   → สั่ง OKX ปิด Grid + แจ้ง Telegram
 """
 
 import os
 import sys
 import logging
+import requests
 from datetime import datetime, timezone, date
 
 try:
-    import okx.Grid as Grid
+    import okx.GridTrading as GridTrading
     import okx.MarketData as MarketData
 except ImportError:
     print("❌ กรุณาติดตั้ง: pip install python-okx")
@@ -38,8 +40,7 @@ except ImportError:
 
 
 # ============================================================
-#  ⚙️  CONFIGURATION — อ่านจาก Environment Variables
-#      (ตั้งค่าใน Cloud Run → Edit & Deploy → Variables)
+#  ⚙️  CONFIGURATION
 # ============================================================
 API_KEY       = os.environ.get("OKX_API_KEY",    "YOUR_OKX_API_KEY")
 API_SECRET    = os.environ.get("OKX_API_SECRET",  "YOUR_OKX_SECRET")
@@ -48,6 +49,10 @@ FLAG          = os.environ.get("OKX_FLAG",        "1")   # "1"=Demo "0"=Live
 
 SUPABASE_URL  = os.environ.get("SUPABASE_URL",    "YOUR_SUPABASE_URL")
 SUPABASE_KEY  = os.environ.get("SUPABASE_KEY",    "YOUR_SUPABASE_KEY")
+
+# Telegram
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID",   "")
 
 MODE          = os.environ.get("MODE", "monitor") # start | monitor | stop
 
@@ -59,8 +64,8 @@ GRID_COUNT    = os.environ.get("GRID_COUNT", "25")
 LEVERAGE      = os.environ.get("LEVERAGE",   "3")
 DIRECTION     = "long"
 RUN_TYPE      = "1"           # 1 = Arithmetic
-STOP_LOSS_PX  = os.environ.get("STOP_LOSS",  "1750" if LEVERAGE == "5" else "1700")
-TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "1600"))
+STOP_LOSS_PX  = os.environ.get("STOP_LOSS",  "1700")
+TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "200"))
 
 
 # ============================================================
@@ -72,6 +77,29 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 log = logging.getLogger("GridBot")
+
+
+# ============================================================
+#  📱  TELEGRAM
+# ============================================================
+def send_telegram(message: str):
+    """ส่งข้อความแจ้งเตือนผ่าน Telegram Bot"""
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        log.warning("⚠️ Telegram ไม่ได้ตั้งค่า — ข้ามการแจ้งเตือน")
+        return
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        resp = requests.post(url, json={
+            "chat_id":    TELEGRAM_CHAT_ID,
+            "text":       message,
+            "parse_mode": "HTML",
+        }, timeout=10)
+        if resp.status_code == 200:
+            log.info("📱 ส่ง Telegram สำเร็จ")
+        else:
+            log.warning(f"⚠️ Telegram ส่งไม่สำเร็จ: {resp.status_code} {resp.text[:100]}")
+    except Exception as e:
+        log.warning(f"⚠️ Telegram error: {e}")
 
 
 # ============================================================
@@ -102,7 +130,7 @@ class DB:
 
     def update_status(self, algo_id: str, state: str, price: float,
                       profit: float, trade_count: int):
-        pct = (profit / TOTAL_CAPITAL) * 100
+        pct = (profit / TOTAL_CAPITAL) * 100 if TOTAL_CAPITAL else 0
         self.client.table("bot_status").upsert({
             "bot_id":        algo_id,
             "inst_id":       INST_ID,
@@ -118,6 +146,24 @@ class DB:
             "algo_state":    state,
             "updated_at":    datetime.now(timezone.utc).isoformat(),
         }, on_conflict="bot_id").execute()
+
+    def set_should_run(self, algo_id: str, value: bool):
+        """ตั้งค่า should_run flag — True=บอทควรรัน, False=หยุดแบบตั้งใจ"""
+        self.client.table("bot_status").update({
+            "should_run": value,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("bot_id", algo_id).execute()
+        log.info(f"  🏷️  should_run → {value}")
+
+    def get_should_run(self, algo_id: str) -> bool:
+        """ดึงค่า should_run flag (default=True ถ้าไม่มีข้อมูล)"""
+        res = self.client.table("bot_status") \
+                  .select("should_run") \
+                  .eq("bot_id", algo_id) \
+                  .limit(1).execute()
+        if res.data:
+            return res.data[0].get("should_run", True)
+        return True  # ถ้าไม่มีข้อมูล → ถือว่าควรรัน
 
     def get_algo_id(self) -> str:
         """ดึง algo_id ล่าสุดจาก Supabase (กรอง leverage + bot_tag IS NULL = Original Grid Bot)"""
@@ -157,8 +203,8 @@ class DB:
 # ============================================================
 class GridManager:
     def __init__(self):
-        self.grid_api   = Grid.GridAPI(
-                            API_KEY, API_SECRET, PASSPHRASE, flag=FLAG)
+        self.grid_api   = GridTrading.GridTradingAPI(
+                            API_KEY, API_SECRET, PASSPHRASE, False, FLAG)
         self.market_api = MarketData.MarketAPI(flag=FLAG)
         self.db         = DB()
 
@@ -175,14 +221,12 @@ class GridManager:
         """
         ตรวจว่า Original Grid Bot ที่รู้จักรันอยู่บน OKX ไหม
         ใช้ known_id จาก Supabase (bot_tag IS NULL) เป็นหลัก
-        เพื่อไม่สับสนกับ Trend Bot ที่ใช้ leverage เดียวกัน
         """
         known_id = self.db.get_algo_id()
         if not known_id:
-            # ยังไม่เคยสร้าง Original Grid Bot → cmd_start() จะสร้างใหม่
             return ""
         try:
-            res = self.grid_api.grid_orders_algo_pending(
+            res = self.grid_api.get_grid_algo_order_list(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0" and res["data"]:
                 for algo in res["data"]:
@@ -192,13 +236,40 @@ class GridManager:
             log.error(f"get_running_algo_id: {e}")
         return ""
 
+    def _do_start_algo(self, price: float) -> str:
+        """
+        สั่ง OKX เปิด Grid จริงๆ — คืน algo_id ถ้าสำเร็จ, "" ถ้าล้มเหลว
+        แยกออกมาเพื่อให้ cmd_start() และ auto-restart ใช้ร่วมกันได้
+        """
+        params = {
+            "instId":      INST_ID,
+            "algoOrdType": "contract_grid",
+            "maxPx":       GRID_UPPER,
+            "minPx":       GRID_LOWER,
+            "gridNum":     GRID_COUNT,
+            "runType":     RUN_TYPE,
+            "direction":   DIRECTION,
+            "lever":       LEVERAGE,
+            "sz":          str(int(TOTAL_CAPITAL)),
+        }
+        if STOP_LOSS_PX:
+            params["slTriggerPx"] = STOP_LOSS_PX
+            params["slOrdPx"]     = "-1"
+
+        res = self.grid_api.place_grid_algo_order(**params)
+        if res["code"] == "0":
+            return res["data"][0]["algoId"]
+        else:
+            log.error(f"❌ เปิด Grid ไม่ได้: code={res.get('code')} msg={res.get('msg')} data={res.get('data')}")
+            return ""
+
     # ── MODE: start ───────────────────────────────────────────
     def cmd_start(self):
-        """สั่ง OKX เปิด Grid (รันครั้งเดียว)"""
+        """สั่ง OKX เปิด Grid + ตั้ง should_run=True + แจ้ง Telegram"""
         log.info("=" * 55)
         log.info("  🚀 MODE: START GRID")
         log.info(f"  Range: ${GRID_LOWER} – ${GRID_UPPER} | Grids: {GRID_COUNT}")
-        log.info(f"  Leverage: {LEVERAGE}x | SL: ${STOP_LOSS_PX}")
+        log.info(f"  Leverage: {LEVERAGE}x | Capital: ${int(TOTAL_CAPITAL)} | SL: ${STOP_LOSS_PX}")
         log.info(f"  Mode: {'🧪 DEMO' if FLAG == '1' else '🔴 LIVE'}")
         log.info("=" * 55)
 
@@ -216,34 +287,30 @@ class GridManager:
             sys.exit(1)
         if not (float(GRID_LOWER) < price < float(GRID_UPPER)):
             log.error(f"❌ ราคา ${price:,.2f} อยู่นอก range ${GRID_LOWER}–${GRID_UPPER}")
+            send_telegram(
+                f"❌ <b>Grid Bot {LEVERAGE}x เปิดไม่ได้</b>\n"
+                f"💲 ETH: <b>${price:,.2f}</b> อยู่นอก range\n"
+                f"📊 Range: ${GRID_LOWER}–${GRID_UPPER}\n"
+                f"กรุณาปรับ range ก่อน restart"
+            )
             sys.exit(1)
 
-        # สั่ง OKX เปิด Grid
-        params = {
-            "instId":      INST_ID,
-            "algoOrdType": "contract_grid",
-            "maxPx":       GRID_UPPER,
-            "minPx":       GRID_LOWER,
-            "gridNum":     GRID_COUNT,
-            "runType":     RUN_TYPE,
-            "direction":   DIRECTION,
-            "lever":       LEVERAGE,
-            "sz":          str(int(TOTAL_CAPITAL)),
-        }
-        if STOP_LOSS_PX:
-            params["slTriggerPx"] = STOP_LOSS_PX
-
         try:
-            res = self.grid_api.grid_order_algo(**params)
-            if res["code"] == "0":
-                algo_id = res["data"][0]["algoId"]
-                log.info(f"✅ OKX เปิด Grid สำเร็จ!")
-                log.info(f"   Algo ID: {algo_id}")
-                log.info(f"   OKX จัดการ orders ทั้งหมดเองแล้ว 🎉")
-                # บันทึก algo_id ลง Supabase
+            algo_id = self._do_start_algo(price)
+            if algo_id:
+                log.info(f"✅ OKX เปิด Grid สำเร็จ! Algo ID: {algo_id}")
                 self.db.update_status(algo_id, "running", price, 0.0, 0)
+                self.db.set_should_run(algo_id, True)
+                env_label = "🧪 DEMO" if FLAG == "1" else "🔴 LIVE"
+                send_telegram(
+                    f"✅ <b>Grid Bot {LEVERAGE}x เปิดแล้ว!</b>\n"
+                    f"📊 Range: ${GRID_LOWER}–${GRID_UPPER} | Grids: {GRID_COUNT}\n"
+                    f"💰 Capital: ${int(TOTAL_CAPITAL)} | SL: ${STOP_LOSS_PX}\n"
+                    f"💲 ETH ตอนนี้: ${price:,.2f}\n"
+                    f"🔗 Algo ID: <code>{algo_id}</code>\n"
+                    f"{env_label}"
+                )
             else:
-                log.error(f"❌ เปิด Grid ไม่ได้: code={res.get('code')} msg={res.get('msg')} data={res.get('data')}")
                 sys.exit(1)
         except Exception as e:
             log.error(f"cmd_start error: {e}")
@@ -253,23 +320,26 @@ class GridManager:
     def cmd_monitor(self):
         """
         ดึงข้อมูลจาก OKX → บันทึก Supabase → จบ
-        Cloud Scheduler เรียก mode นี้ทุก 1 นาที
+        ถ้าบอทหยุดและ should_run=True → auto-restart + แจ้ง Telegram
+        ถ้าราคานอก range → แจ้งเตือนและไม่ restart (ป้องกัน Stop Loss loop)
         """
         log.info(f"📡 MONITOR — {datetime.now().strftime('%H:%M:%S')}")
 
         # หา algo_id
         algo_id = self.get_running_algo_id()
         if not algo_id:
-            # ลองดึงจาก Supabase
             algo_id = self.db.get_algo_id()
         if not algo_id:
             log.warning("⚠️  ไม่พบ Grid ที่รันอยู่ — รัน MODE=start ก่อน")
             return
 
+        # ดึงราคาปัจจุบัน
+        price = self.get_price()
+
         # ดึงสถานะ Grid จาก OKX
         state = "running"
         try:
-            res = self.grid_api.grid_orders_algo_pending(
+            res = self.grid_api.get_grid_algo_order_list(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0":
                 found = next((d for d in res["data"]
@@ -281,13 +351,71 @@ class GridManager:
         except Exception as e:
             log.error(f"get state error: {e}")
 
-        # ดึงราคาปัจจุบัน
-        price = self.get_price()
+        log.info(f"  💲 ETH: ${price:,.2f} | State: {state}")
 
+        # ── AUTO-RESTART LOGIC ─────────────────────────────────
+        if state == "stopped":
+            should_run = self.db.get_should_run(algo_id)
+            log.info(f"  🏷️  should_run = {should_run}")
+
+            if should_run:
+                # ตรวจสอบราคา ก่อน restart เสมอ
+                price_in_range = float(GRID_LOWER) < price < float(GRID_UPPER)
+
+                if price_in_range:
+                    # ✅ ราคาอยู่ใน range → restart ปลอดภัย
+                    log.warning("⚠️  บอทหยุดโดย OKX — กำลัง restart อัตโนมัติ...")
+                    send_telegram(
+                        f"⚠️ <b>Grid Bot {LEVERAGE}x หยุดโดย OKX!</b>\n"
+                        f"💲 ETH: ${price:,.2f} (ยังอยู่ใน range)\n"
+                        f"🔄 กำลัง restart อัตโนมัติ..."
+                    )
+                    try:
+                        new_algo_id = self._do_start_algo(price)
+                        if new_algo_id:
+                            log.info(f"✅ Restart สำเร็จ! Algo ID: {new_algo_id}")
+                            self.db.update_status(new_algo_id, "running", price, 0.0, 0)
+                            self.db.set_should_run(new_algo_id, True)
+                            send_telegram(
+                                f"✅ <b>Grid Bot {LEVERAGE}x restart สำเร็จ!</b>\n"
+                                f"💲 ETH: ${price:,.2f}\n"
+                                f"📊 Range: ${GRID_LOWER}–${GRID_UPPER}\n"
+                                f"🔗 Algo ID ใหม่: <code>{new_algo_id}</code>"
+                            )
+                        else:
+                            send_telegram(
+                                f"❌ <b>Grid Bot {LEVERAGE}x restart ล้มเหลว!</b>\n"
+                                f"กรุณาตรวจสอบ GitHub Actions log"
+                            )
+                    except Exception as e:
+                        log.error(f"auto-restart error: {e}")
+                        send_telegram(
+                            f"❌ <b>Grid Bot {LEVERAGE}x restart error!</b>\n"
+                            f"Error: {str(e)[:100]}"
+                        )
+                else:
+                    # ⛔ ราคาอยู่นอก range → อาจ Stop Loss ทำงาน → ไม่ restart
+                    log.warning(f"⛔ ราคา ${price:,.2f} อยู่นอก range — ไม่ restart อัตโนมัติ")
+                    self.db.set_should_run(algo_id, False)  # หยุดพยายาม restart
+                    self.db.update_status(algo_id, "stopped", price, 0.0, 0)
+                    send_telegram(
+                        f"🚨 <b>Grid Bot {LEVERAGE}x หยุด + ราคานอก range!</b>\n"
+                        f"💲 ETH: <b>${price:,.2f}</b>\n"
+                        f"📊 Range: ${GRID_LOWER}–${GRID_UPPER}\n"
+                        f"⚠️ อาจเกิดจาก Stop Loss trigger\n"
+                        f"🔕 ไม่ restart อัตโนมัติ — กรุณาตรวจสอบและ restart มือเองถ้าต้องการ"
+                    )
+            else:
+                # should_run=False → หยุดแบบตั้งใจ → ไม่ restart
+                log.info("ℹ️  บอทหยุดแบบตั้งใจ (should_run=False) — ไม่ restart")
+                self.db.update_status(algo_id, "stopped", price, 0.0, 0)
+            return  # จบ — ไม่ต้องดึง trades เพราะบอทหยุดแล้ว
+
+        # ── บอทกำลังรันปกติ → ดึงข้อมูลและบันทึก ──────────────
         # ดึง trades ที่ filled ใหม่
         new_trades = []
         try:
-            res = self.grid_api.grid_sub_orders(
+            res = self.grid_api.get_grid_algo_sub_orders(
                 algoId=algo_id,
                 algoOrdType="contract_grid",
                 type="filled"
@@ -309,14 +437,13 @@ class GridManager:
         self.db.update_status(algo_id, state, price, total_profit, trade_count)
         self.db.save_daily_pnl(algo_id, total_profit, trade_count)
 
-        pct = (total_profit / TOTAL_CAPITAL) * 100
-        log.info(f"  💲 ETH: ${price:,.2f} | State: {state}")
+        pct = (total_profit / TOTAL_CAPITAL) * 100 if TOTAL_CAPITAL else 0
         log.info(f"  💵 PnL: ${total_profit:.4f} ({pct:.4f}%) | Trades: {trade_count}")
-        log.info("  ✅ Monitor เสร็จ — Cloud Run จะ shutdown")
+        log.info("  ✅ Monitor เสร็จ")
 
     # ── MODE: stop ────────────────────────────────────────────
     def cmd_stop(self):
-        """สั่ง OKX หยุด Grid (รันครั้งเดียว)"""
+        """สั่ง OKX หยุด Grid + ตั้ง should_run=False + แจ้ง Telegram"""
         log.info("⛔ MODE: STOP GRID")
 
         algo_id = self.get_running_algo_id()
@@ -327,16 +454,24 @@ class GridManager:
             return
 
         try:
-            res = self.grid_api.grid_stop_order_algo(
+            res = self.grid_api.stop_grid_algo_order(
                 algoId=algo_id,
                 instId=INST_ID,
                 algoOrdType="contract_grid",
                 stopType="1"
             )
             if res["code"] == "0":
+                price = self.get_price()
                 log.info(f"✅ หยุด Grid สำเร็จ | Algo ID: {algo_id}")
-                self.db.update_status(algo_id, "stopped",
-                                      self.get_price(), 0.0, 0)
+                self.db.update_status(algo_id, "stopped", price, 0.0, 0)
+                self.db.set_should_run(algo_id, False)  # ← ตั้งใจหยุด ← ไม่ auto-restart
+                send_telegram(
+                    f"🛑 <b>Grid Bot {LEVERAGE}x หยุดแล้ว</b>\n"
+                    f"ℹ️ หยุดแบบตั้งใจ (manual stop)\n"
+                    f"💲 ETH: ${price:,.2f}\n"
+                    f"🔗 Algo ID: <code>{algo_id}</code>\n"
+                    f"🔕 Auto-restart ถูกปิดแล้ว"
+                )
             else:
                 log.error(f"❌ หยุดไม่ได้: {res.get('msg')}")
         except Exception as e:
@@ -347,8 +482,8 @@ class GridManager:
 #  🚀  ENTRY POINT
 # ============================================================
 def main():
-    log.info(f"🤖 Grid Bot | Mode: {MODE.upper()} | "
-             f"{'🧪 DEMO' if FLAG == '1' else '🔴 LIVE'}")
+    env_label = "🧪 DEMO" if FLAG == "1" else "🔴 LIVE"
+    log.info(f"🤖 Grid Bot {LEVERAGE}x | Mode: {MODE.upper()} | {env_label}")
 
     bot = GridManager()
 
