@@ -901,6 +901,9 @@ async function refresh() {
     renderTrendBotCards(trendRows);
     updateSidebar(botRows);
 
+    // Merge all rows (must declare BEFORE use)
+    const allRows = [...botRows, ...trendRows];
+
     // Update last-updated time (consider all bots including trend)
     const latest = allRows.reduce((acc, r) =>
       !acc || new Date(r.updated_at) > new Date(acc) ? r.updated_at : acc, null);
@@ -912,7 +915,6 @@ async function refresh() {
     const byLev = {};
     botRows.forEach(r => { byLev[r.leverage] = r; });
 
-    const allRows = [...botRows, ...trendRows];
     const runCount = allRows.filter(r => r.is_running === true).length;
     document.getElementById("sb-running").textContent = `${runCount}/6`;
 
