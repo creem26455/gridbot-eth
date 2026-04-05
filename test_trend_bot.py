@@ -88,7 +88,7 @@ class DB:
             "side":       t.get("side", ""),
             "price":      float(t.get("avgPx") or t.get("px") or 0),
             "size":       float(t.get("sz", 0)),
-            "profit":     float(t.get("pnl", 0)),
+            "profit":     float(t.get("pnl") or 0),
             "state":      t.get("state", ""),
             "created_at": datetime.now(timezone.utc).isoformat(),
         } for t in trades]
