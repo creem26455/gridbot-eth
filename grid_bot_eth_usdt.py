@@ -120,11 +120,12 @@ class DB:
         }, on_conflict="bot_id").execute()
 
     def get_algo_id(self) -> str:
-        """ดึง algo_id ล่าสุดจาก Supabase (กรอง leverage เดียวกัน)"""
+        """ดึง algo_id ล่าสุดจาก Supabase (กรอง leverage + bot_tag IS NULL = Original Grid Bot)"""
         res = self.client.table("bot_status") \
                   .select("bot_id") \
                   .eq("inst_id", INST_ID) \
                   .eq("leverage", int(LEVERAGE)) \
+                  .is_("bot_tag", "null") \
                   .order("updated_at", desc=True) \
                   .limit(1).execute()
         if res.data:
@@ -171,13 +172,21 @@ class GridManager:
         return 0.0
 
     def get_running_algo_id(self) -> str:
-        """ตรวจว่ามี Grid leverage เดิมรันอยู่บน OKX ไหม"""
+        """
+        ตรวจว่า Original Grid Bot ที่รู้จักรันอยู่บน OKX ไหม
+        ใช้ known_id จาก Supabase (bot_tag IS NULL) เป็นหลัก
+        เพื่อไม่สับสนกับ Trend Bot ที่ใช้ leverage เดียวกัน
+        """
+        known_id = self.db.get_algo_id()
+        if not known_id:
+            # ยังไม่เคยสร้าง Original Grid Bot → cmd_start() จะสร้างใหม่
+            return ""
         try:
             res = self.grid_api.grid_orders_algo_pending(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0" and res["data"]:
                 for algo in res["data"]:
-                    if str(algo.get("lever", "")) == str(LEVERAGE):
+                    if algo["algoId"] == known_id:
                         return algo["algoId"]
         except Exception as e:
             log.error(f"get_running_algo_id: {e}")
