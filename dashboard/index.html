@@ -956,37 +956,58 @@ async function refresh() {
         });
       }
 
-      pnlChart.data.labels = d]\˛X\
-O���X�J
-JJN��\��]K�]\�]��K�]HH]\˛X\
-O�]P�S]�̗V�H��
-N��\��]K�]\�]��WK�]HH]\˛X\
-O�]P�S]���V�H��
-N��\��]K�]\�]�̗K�]HH]\˛X\
-O�]P�S]��WV�H��
-N��\��\]J
-NH�]�
-JH�ۜ��K��\�����Z[N��K�Y\��Y�JNB����ˈ�X�[��Y\�
-[���B��H�ۜ��Y\�H]�Z]]Y\�J��Y\ȋ�ܙ\�XܙX]Y�]�\�ɛ[Z]LMH�N�ۜ���HH��[Y[���][[Y[��RY
-��Y\�]��H�NY�
-]�Y\˛[��
-H��K�[��\�SH��\��H�[\K\��ȏ����[�H���.(�.,x.!�.a8.(x.b8.(x.-x.`8.%�.(�.%�����H[�H��K�[��\�SH�Y\˛X\
-O��ۜ�[YHH�]�]J�ܙX]Y�]
-B�����[U[YT��[���U���\�L���[�HJN�ۜ�\Н^HH��YHOOH��^H��ۜ��H��]��ٚ]OH�[�
-���]��ٚ]��[�ۜ����H�OH�[���[��[OH���܎����H���\�KYܙY[�H����\�K\�Y
-H�H��	���њ^Y
+      pnlChart.data.labels = dates.map(d => d.slice(5));
+      pnlChart.data.datasets[0].data = dates.map(d => dataByLev[2][d] ?? 0);
+      pnlChart.data.datasets[1].data = dates.map(d => dataByLev[3][d] ?? 0);
+      pnlChart.data.datasets[2].data = dates.map(d => dataByLev[5][d] ?? 0);
+      pnlChart.update();
+    } catch (e) {
+      console.warn("pnl_daily:", e.message);
+    }
 
-_O��[������%��ۜ��X�HH��X�HOH�[��		�
-���X�JK����[T��[��[�Y�[�Y�Z[�[][Q��X�[ۑY�]Έ�J_X����%��]\������[OH���܎��\�K[ݙ\�^JNٛ۝\�^�N���\�[H���[Y_O�����[��\��H��Y�H	�\Н^H���^H����[�H���\Н^H���VH����S�O��[��������X�_O��������O������JK���[���NB�H�]�
-JH�ۜ��K��\����Y\Έ�K�Y\��Y�JNB��H�]�
-\��H�ۜ��K�\��܊��Y��\�\��܎��\��N��[Y[���][[Y[��RY
-����YܚY�K�[��\�SB�]��[OH�ܚYX��[[��K�LN�^X[Yێ��[�\����܎��\�K\�Y
-N�Y[�Ό���.`8."�.-�.b8.+x.(x.%x.b8.+H�\X�\�H8.a8.(x.b8.a8.%8.bN�	�\���Y\��Y�_O�]��B�B����8� 8� [�]8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ���[Y[��Y]�[�\�[�\���P�۝[��YY�
+    // 3. Recent Trades (all bots)
+    try {
+      const trades = await query("trades", "order=created_at.desc&limit=15");
+      const tbody  = document.getElementById("trades-tbody");
+      if (!trades.length) {
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="4">ยังไม่มีเทรด</td></tr>`;
+      } else {
+        tbody.innerHTML = trades.map(t => {
+          const time    = new Date(t.created_at)
+                            .toLocaleTimeString("th-TH", { hour12: false });
+          const isBuy   = t.side === "buy";
+          const pf      = t.net_profit != null ? +t.net_profit : null;
+          const pfStr   = pf != null
+            ? `<span style="color:${pf >= 0 ? "var(--green)" : "var(--red)"}">$${pf.toFixed(4)}</span>`
+            : "—";
+          const price   = t.price != null
+            ? `$${(+t.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+            : "—";
+          return `<tr>
+            <td style="color:var(--overlay);font-size:0.75rem">${time}</td>
+            <td><span class="badge ${isBuy ? "buy" : "sell"}">${isBuy ? "BUY" : "SELL"}</span></td>
+            <td>${price}</td>
+            <td>${pfStr}</td>
+          </tr>`;
+        }).join("");
+      }
+    } catch (e) {
+      console.warn("trades:", e.message);
+    }
 
-HO�[�]�\�
+  } catch (err) {
+    console.error("refresh error:", err);
+    document.getElementById("bots-grid").innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;color:var(--red);padding:20px">เชื่อมต่อ Supabase ไม่ได้: ${err.message}</div>`;
+  }
+}
 
-N�Y��\�
-
-N�][�\��[
-�Y��\��
-NJN��ܚ\��؛�O���[�
+// ── Init ────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  initChart();
+  refresh();
+  setInterval(refresh, 30000);
+});
+</script>
+</body>
+</html>
