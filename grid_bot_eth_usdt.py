@@ -226,7 +226,7 @@ class GridManager:
         if not known_id:
             return ""
         try:
-            res = self.grid_api.get_grid_algo_order_list(
+            res = self.grid_api.grid_orders_algo_pending(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0" and res["data"]:
                 for algo in res["data"]:
@@ -256,7 +256,7 @@ class GridManager:
             params["slTriggerPx"] = STOP_LOSS_PX
             params["slOrdPx"]     = "-1"
 
-        res = self.grid_api.place_grid_algo_order(**params)
+        res = self.grid_api.grid_order_algo(**params)
         if res["code"] == "0":
             return res["data"][0]["algoId"]
         else:
@@ -339,7 +339,7 @@ class GridManager:
         # ดึงสถานะ Grid จาก OKX
         state = "running"
         try:
-            res = self.grid_api.get_grid_algo_order_list(
+            res = self.grid_api.grid_orders_algo_pending(
                 algoOrdType="contract_grid", instId=INST_ID)
             if res["code"] == "0":
                 found = next((d for d in res["data"]
@@ -415,7 +415,7 @@ class GridManager:
         # ดึง trades ที่ filled ใหม่
         new_trades = []
         try:
-            res = self.grid_api.get_grid_algo_sub_orders(
+            res = self.grid_api.grid_sub_orders(
                 algoId=algo_id,
                 algoOrdType="contract_grid",
                 type="filled"
@@ -454,7 +454,7 @@ class GridManager:
             return
 
         try:
-            res = self.grid_api.stop_grid_algo_order(
+            res = self.grid_api.grid_stop_order_algo(
                 algoId=algo_id,
                 instId=INST_ID,
                 algoOrdType="contract_grid",
