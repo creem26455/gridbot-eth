@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-╔══════════════════════════════════════════════════════════════╗
-║         ETH/USDT Grid Bot — OKX Built-in Grid API           ║
-║         Deploy: GitHub Actions (cron ทุก 5 นาที)            ║
-║         Mode  : Single-run (ไม่มี while loop)               ║
-║                                                              ║
-║  Features:                                                   ║
-║   ✅ Auto-restart เมื่อ OKX หยุดบอทโดยไม่ตั้งใจ            ║
-║   ✅ Telegram แจ้งเตือนทันทีเมื่อบอทหยุด/restart/start    ║
-║   ✅ should_run flag ป้องกัน restart เมื่อหยุดแบบตั้งใจ    ║
-║   ✅ ตรวจสอบราคาก่อน restart (ป้องกัน Stop Loss loop)      ║
-╚══════════════════════════════════════════════════════════════╝
+ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+â         ETH/USDT Grid Bot â OKX Built-in Grid API           â
+â         Deploy: GitHub Actions (cron à¸à¸¸à¸ 5 à¸à¸²à¸à¸µ)            â
+â         Mode  : Single-run (à¹à¸¡à¹à¸¡à¸µ while loop)               â
+â                                                              â
+â  Features:                                                   â
+â   â Auto-restart à¹à¸¡à¸·à¹à¸­ OKX à¸«à¸¢à¸¸à¸à¸à¸­à¸à¹à¸à¸¢à¹à¸¡à¹à¸à¸±à¹à¸à¹à¸            â
+â   â Telegram à¹à¸à¹à¸à¹à¸à¸·à¸­à¸à¸à¸±à¸à¸à¸µà¹à¸¡à¸·à¹à¸­à¸à¸­à¸à¸«à¸¢à¸¸à¸/restart/start    â
+â   â should_run flag à¸à¹à¸­à¸à¸à¸±à¸ restart à¹à¸¡à¸·à¹à¸­à¸«à¸¢à¸¸à¸à¹à¸à¸à¸à¸±à¹à¸à¹à¸    â
+â   â à¸à¸£à¸§à¸à¸ªà¸­à¸à¸£à¸²à¸à¸²à¸à¹à¸­à¸ restart (à¸à¹à¸­à¸à¸à¸±à¸ Stop Loss loop)      â
+ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 Flow:
-  - ครั้งแรก : รัน MODE=start   → สั่ง OKX เปิด Grid + แจ้ง Telegram
-  - ทุก 5 นาที: รัน MODE=monitor → ตรวจสถานะ → ถ้าหยุด → restart อัตโนมัติ
-  - หยุด Grid : รัน MODE=stop   → สั่ง OKX ปิด Grid + แจ้ง Telegram
+  - à¸à¸£à¸±à¹à¸à¹à¸£à¸ : à¸£à¸±à¸ MODE=start   â à¸ªà¸±à¹à¸ OKX à¹à¸à¸´à¸ Grid + à¹à¸à¹à¸ Telegram
+  - à¸à¸¸à¸ 5 à¸à¸²à¸à¸µ: à¸£à¸±à¸ MODE=monitor â à¸à¸£à¸§à¸à¸ªà¸à¸²à¸à¸° â à¸à¹à¸²à¸«à¸¢à¸¸à¸ â restart à¸­à¸±à¸à¹à¸à¸¡à¸±à¸à¸´
+  - à¸«à¸¢à¸¸à¸ Grid : à¸£à¸±à¸ MODE=stop   â à¸ªà¸±à¹à¸ OKX à¸à¸´à¸ Grid + à¹à¸à¹à¸ Telegram
 """
 
 import os
@@ -29,18 +29,18 @@ try:
     import okx.Grid as GridTrading
     import okx.MarketData as MarketData
 except ImportError:
-    print("❌ กรุณาติดตั้ง: pip install python-okx")
+    print("â à¸à¸£à¸¸à¸à¸²à¸à¸´à¸à¸à¸±à¹à¸: pip install python-okx")
     sys.exit(1)
 
 try:
     from supabase import create_client, Client
 except ImportError:
-    print("❌ กรุณาติดตั้ง: pip install supabase")
+    print("â à¸à¸£à¸¸à¸à¸²à¸à¸´à¸à¸à¸±à¹à¸: pip install supabase")
     sys.exit(1)
 
 
 # ============================================================
-#  ⚙️  CONFIGURATION
+#  âï¸  CONFIGURATION
 # ============================================================
 API_KEY       = os.environ.get("OKX_API_KEY",    "YOUR_OKX_API_KEY")
 API_SECRET    = os.environ.get("OKX_API_SECRET",  "YOUR_OKX_SECRET")
@@ -69,7 +69,7 @@ TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "200"))
 
 
 # ============================================================
-#  📝  LOGGING
+#  ð  LOGGING
 # ============================================================
 logging.basicConfig(
     level=logging.INFO,
@@ -80,12 +80,12 @@ log = logging.getLogger("GridBot")
 
 
 # ============================================================
-#  📱  TELEGRAM
+#  ð±  TELEGRAM
 # ============================================================
 def send_telegram(message: str):
-    """ส่งข้อความแจ้งเตือนผ่าน Telegram Bot"""
+    """à¸ªà¹à¸à¸à¹à¸­à¸à¸§à¸²à¸¡à¹à¸à¹à¸à¹à¸à¸·à¸­à¸à¸à¹à¸²à¸ Telegram Bot"""
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        log.warning("⚠️ Telegram ไม่ได้ตั้งค่า — ข้ามการแจ้งเตือน")
+        log.warning("â ï¸ Telegram à¹à¸¡à¹à¹à¸à¹à¸à¸±à¹à¸à¸à¹à¸² â à¸à¹à¸²à¸¡à¸à¸²à¸£à¹à¸à¹à¸à¹à¸à¸·à¸­à¸")
         return
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -95,15 +95,15 @@ def send_telegram(message: str):
             "parse_mode": "HTML",
         }, timeout=10)
         if resp.status_code == 200:
-            log.info("📱 ส่ง Telegram สำเร็จ")
+            log.info("ð± à¸ªà¹à¸ Telegram à¸ªà¸³à¹à¸£à¹à¸")
         else:
-            log.warning(f"⚠️ Telegram ส่งไม่สำเร็จ: {resp.status_code} {resp.text[:100]}")
+            log.warning(f"â ï¸ Telegram à¸ªà¹à¸à¹à¸¡à¹à¸ªà¸³à¹à¸£à¹à¸: {resp.status_code} {resp.text[:100]}")
     except Exception as e:
-        log.warning(f"⚠️ Telegram error: {e}")
+        log.warning(f"â ï¸ Telegram error: {e}")
 
 
 # ============================================================
-#  🗄️  SUPABASE
+#  ðï¸  SUPABASE
 # ============================================================
 class DB:
     def __init__(self):
@@ -123,7 +123,7 @@ class DB:
             "state":      t.get("state", ""),
             "created_at": datetime.now(timezone.utc).isoformat(),
         } for t in trades]
-        # Deduplicate by order_id (OKX อาจส่ง ordId ซ้ำใน batch เดียวกัน)
+        # Deduplicate by order_id (OKX à¸­à¸²à¸à¸ªà¹à¸ ordId à¸à¹à¸³à¹à¸ batch à¹à¸à¸µà¸¢à¸§à¸à¸±à¸)
         rows = list({r["order_id"]: r for r in rows}.values())
         self.client.table("trades").upsert(rows, on_conflict="order_id").execute()
         return len(rows)
@@ -148,25 +148,25 @@ class DB:
         }, on_conflict="bot_id").execute()
 
     def set_should_run(self, algo_id: str, value: bool):
-        """ตั้งค่า should_run flag — True=บอทควรรัน, False=หยุดแบบตั้งใจ"""
+        """à¸à¸±à¹à¸à¸à¹à¸² should_run flag â True=à¸à¸­à¸à¸à¸§à¸£à¸£à¸±à¸, False=à¸«à¸¢à¸¸à¸à¹à¸à¸à¸à¸±à¹à¸à¹à¸"""
         self.client.table("bot_status").update({
             "should_run": value,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("bot_id", algo_id).execute()
-        log.info(f"  🏷️  should_run → {value}")
+        log.info(f"  ð·ï¸  should_run â {value}")
 
     def get_should_run(self, algo_id: str) -> bool:
-        """ดึงค่า should_run flag (default=True ถ้าไม่มีข้อมูล)"""
+        """à¸à¸¶à¸à¸à¹à¸² should_run flag (default=True à¸à¹à¸²à¹à¸¡à¹à¸¡à¸µà¸à¹à¸­à¸¡à¸¹à¸¥)"""
         res = self.client.table("bot_status") \
                   .select("should_run") \
                   .eq("bot_id", algo_id) \
                   .limit(1).execute()
         if res.data:
             return res.data[0].get("should_run", True)
-        return True  # ถ้าไม่มีข้อมูล → ถือว่าควรรัน
+        return True  # à¸à¹à¸²à¹à¸¡à¹à¸¡à¸µà¸à¹à¸­à¸¡à¸¹à¸¥ â à¸à¸·à¸­à¸§à¹à¸²à¸à¸§à¸£à¸£à¸±à¸
 
     def get_algo_id(self) -> str:
-        """ดึง algo_id ล่าสุดจาก Supabase (กรอง leverage + bot_tag IS NULL = Original Grid Bot)"""
+        """à¸à¸¶à¸ algo_id à¸¥à¹à¸²à¸ªà¸¸à¸à¸à¸²à¸ Supabase (à¸à¸£à¸­à¸ leverage + bot_tag IS NULL = Original Grid Bot)"""
         res = self.client.table("bot_status") \
                   .select("bot_id") \
                   .eq("inst_id", INST_ID) \
@@ -179,7 +179,7 @@ class DB:
         return ""
 
     def get_total_profit(self, algo_id: str) -> tuple:
-        """ดึงกำไรสะสมและจำนวนเทรดจาก Supabase"""
+        """à¸à¸¶à¸à¸à¸³à¹à¸£à¸ªà¸°à¸ªà¸¡à¹à¸¥à¸°à¸à¸³à¸à¸§à¸à¹à¸à¸£à¸à¸à¸²à¸ Supabase"""
         res = self.client.table("trades") \
                   .select("profit") \
                   .eq("algo_id", algo_id).execute()
@@ -199,7 +199,7 @@ class DB:
 
 
 # ============================================================
-#  🤖  GRID MANAGER
+#  ð¤  GRID MANAGER
 # ============================================================
 class GridManager:
     def __init__(self):
@@ -219,8 +219,8 @@ class GridManager:
 
     def get_running_algo_id(self) -> str:
         """
-        ตรวจว่า Original Grid Bot ที่รู้จักรันอยู่บน OKX ไหม
-        ใช้ known_id จาก Supabase (bot_tag IS NULL) เป็นหลัก
+        à¸à¸£à¸§à¸à¸§à¹à¸² Original Grid Bot à¸à¸µà¹à¸£à¸¹à¹à¸à¸±à¸à¸£à¸±à¸à¸­à¸¢à¸¹à¹à¸à¸ OKX à¹à¸«à¸¡
+        à¹à¸à¹ known_id à¸à¸²à¸ Supabase (bot_tag IS NULL) à¹à¸à¹à¸à¸«à¸¥à¸±à¸
         """
         known_id = self.db.get_algo_id()
         if not known_id:
@@ -238,8 +238,8 @@ class GridManager:
 
     def _do_start_algo(self, price: float) -> str:
         """
-        สั่ง OKX เปิด Grid จริงๆ — คืน algo_id ถ้าสำเร็จ, "" ถ้าล้มเหลว
-        แยกออกมาเพื่อให้ cmd_start() และ auto-restart ใช้ร่วมกันได้
+        à¸ªà¸±à¹à¸ OKX à¹à¸à¸´à¸ Grid à¸à¸£à¸´à¸à¹ â à¸à¸·à¸ algo_id à¸à¹à¸²à¸ªà¸³à¹à¸£à¹à¸, "" à¸à¹à¸²à¸¥à¹à¸¡à¹à¸«à¸¥à¸§
+        à¹à¸¢à¸à¸­à¸­à¸à¸¡à¸²à¹à¸à¸·à¹à¸­à¹à¸«à¹ cmd_start() à¹à¸¥à¸° auto-restart à¹à¸à¹à¸£à¹à¸§à¸¡à¸à¸±à¸à¹à¸à¹
         """
         params = {
             "instId":      INST_ID,
@@ -254,60 +254,59 @@ class GridManager:
         }
         if STOP_LOSS_PX:
             params["slTriggerPx"] = STOP_LOSS_PX
-            params["slOrdPx"]     = "-1"
 
         res = self.grid_api.grid_order_algo(**params)
         if res["code"] == "0":
             return res["data"][0]["algoId"]
         else:
-            log.error(f"❌ เปิด Grid ไม่ได้: code={res.get('code')} msg={res.get('msg')} data={res.get('data')}")
+            log.error(f"â à¹à¸à¸´à¸ Grid à¹à¸¡à¹à¹à¸à¹: code={res.get('code')} msg={res.get('msg')} data={res.get('data')}")
             return ""
 
-    # ── MODE: start ───────────────────────────────────────────
+    # ââ MODE: start âââââââââââââââââââââââââââââââââââââââââââ
     def cmd_start(self):
-        """สั่ง OKX เปิด Grid + ตั้ง should_run=True + แจ้ง Telegram"""
+        """à¸ªà¸±à¹à¸ OKX à¹à¸à¸´à¸ Grid + à¸à¸±à¹à¸ should_run=True + à¹à¸à¹à¸ Telegram"""
         log.info("=" * 55)
-        log.info("  🚀 MODE: START GRID")
-        log.info(f"  Range: ${GRID_LOWER} – ${GRID_UPPER} | Grids: {GRID_COUNT}")
+        log.info("  ð MODE: START GRID")
+        log.info(f"  Range: ${GRID_LOWER} â ${GRID_UPPER} | Grids: {GRID_COUNT}")
         log.info(f"  Leverage: {LEVERAGE}x | Capital: ${int(TOTAL_CAPITAL)} | SL: ${STOP_LOSS_PX}")
-        log.info(f"  Mode: {'🧪 DEMO' if FLAG == '1' else '🔴 LIVE'}")
+        log.info(f"  Mode: {'ð§ª DEMO' if FLAG == '1' else 'ð´ LIVE'}")
         log.info("=" * 55)
 
-        # เช็คว่ามี Grid รันอยู่แล้วหรือยัง
+        # à¹à¸à¹à¸à¸§à¹à¸²à¸¡à¸µ Grid à¸£à¸±à¸à¸­à¸¢à¸¹à¹à¹à¸¥à¹à¸§à¸«à¸£à¸·à¸­à¸¢à¸±à¸
         existing = self.get_running_algo_id()
         if existing:
-            log.warning(f"⚠️  มี Grid รันอยู่แล้ว Algo ID: {existing}")
-            log.warning("   ถ้าต้องการเปิดใหม่ ให้ MODE=stop ก่อน")
+            log.warning(f"â ï¸  à¸¡à¸µ Grid à¸£à¸±à¸à¸­à¸¢à¸¹à¹à¹à¸¥à¹à¸§ Algo ID: {existing}")
+            log.warning("   à¸à¹à¸²à¸à¹à¸­à¸à¸à¸²à¸£à¹à¸à¸´à¸à¹à¸«à¸¡à¹ à¹à¸«à¹ MODE=stop à¸à¹à¸­à¸")
             return
 
-        # เช็คราคาว่าอยู่ใน range
+        # à¹à¸à¹à¸à¸£à¸²à¸à¸²à¸§à¹à¸²à¸­à¸¢à¸¹à¹à¹à¸ range
         price = self.get_price()
         if price == 0:
-            log.error("❌ ดึงราคาไม่ได้")
+            log.error("â à¸à¸¶à¸à¸£à¸²à¸à¸²à¹à¸¡à¹à¹à¸à¹")
             sys.exit(1)
         if not (float(GRID_LOWER) < price < float(GRID_UPPER)):
-            log.error(f"❌ ราคา ${price:,.2f} อยู่นอก range ${GRID_LOWER}–${GRID_UPPER}")
+            log.error(f"â à¸£à¸²à¸à¸² ${price:,.2f} à¸­à¸¢à¸¹à¹à¸à¸­à¸ range ${GRID_LOWER}â${GRID_UPPER}")
             send_telegram(
-                f"❌ <b>Grid Bot {LEVERAGE}x เปิดไม่ได้</b>\n"
-                f"💲 ETH: <b>${price:,.2f}</b> อยู่นอก range\n"
-                f"📊 Range: ${GRID_LOWER}–${GRID_UPPER}\n"
-                f"กรุณาปรับ range ก่อน restart"
+                f"â <b>Grid Bot {LEVERAGE}x à¹à¸à¸´à¸à¹à¸¡à¹à¹à¸à¹</b>\n"
+                f"ð² ETH: <b>${price:,.2f}</b> à¸­à¸¢à¸¹à¹à¸à¸­à¸ range\n"
+                f"ð Range: ${GRID_LOWER}â${GRID_UPPER}\n"
+                f"à¸à¸£à¸¸à¸à¸²à¸à¸£à¸±à¸ range à¸à¹à¸­à¸ restart"
             )
             sys.exit(1)
 
         try:
             algo_id = self._do_start_algo(price)
             if algo_id:
-                log.info(f"✅ OKX เปิด Grid สำเร็จ! Algo ID: {algo_id}")
+                log.info(f"â OKX à¹à¸à¸´à¸ Grid à¸ªà¸³à¹à¸£à¹à¸! Algo ID: {algo_id}")
                 self.db.update_status(algo_id, "running", price, 0.0, 0)
                 self.db.set_should_run(algo_id, True)
-                env_label = "🧪 DEMO" if FLAG == "1" else "🔴 LIVE"
+                env_label = "ð§ª DEMO" if FLAG == "1" else "ð´ LIVE"
                 send_telegram(
-                    f"✅ <b>Grid Bot {LEVERAGE}x เปิดแล้ว!</b>\n"
-                    f"📊 Range: ${GRID_LOWER}–${GRID_UPPER} | Grids: {GRID_COUNT}\n"
-                    f"💰 Capital: ${int(TOTAL_CAPITAL)} | SL: ${STOP_LOSS_PX}\n"
-                    f"💲 ETH ตอนนี้: ${price:,.2f}\n"
-                    f"🔗 Algo ID: <code>{algo_id}</code>\n"
+                    f"â <b>Grid Bot {LEVERAGE}x à¹à¸à¸´à¸à¹à¸¥à¹à¸§!</b>\n"
+                    f"ð Range: ${GRID_LOWER}â${GRID_UPPER} | Grids: {GRID_COUNT}\n"
+                    f"ð° Capital: ${int(TOTAL_CAPITAL)} | SL: ${STOP_LOSS_PX}\n"
+                    f"ð² ETH à¸à¸­à¸à¸à¸µà¹: ${price:,.2f}\n"
+                    f"ð Algo ID: <code>{algo_id}</code>\n"
                     f"{env_label}"
                 )
             else:
@@ -316,27 +315,27 @@ class GridManager:
             log.error(f"cmd_start error: {e}")
             sys.exit(1)
 
-    # ── MODE: monitor ─────────────────────────────────────────
+    # ââ MODE: monitor âââââââââââââââââââââââââââââââââââââââââ
     def cmd_monitor(self):
         """
-        ดึงข้อมูลจาก OKX → บันทึก Supabase → จบ
-        ถ้าบอทหยุดและ should_run=True → auto-restart + แจ้ง Telegram
-        ถ้าราคานอก range → แจ้งเตือนและไม่ restart (ป้องกัน Stop Loss loop)
+        à¸à¸¶à¸à¸à¹à¸­à¸¡à¸¹à¸¥à¸à¸²à¸ OKX â à¸à¸±à¸à¸à¸¶à¸ Supabase â à¸à¸
+        à¸à¹à¸²à¸à¸­à¸à¸«à¸¢à¸¸à¸à¹à¸¥à¸° should_run=True â auto-restart + à¹à¸à¹à¸ Telegram
+        à¸à¹à¸²à¸£à¸²à¸à¸²à¸à¸­à¸ range â à¹à¸à¹à¸à¹à¸à¸·à¸­à¸à¹à¸¥à¸°à¹à¸¡à¹ restart (à¸à¹à¸­à¸à¸à¸±à¸ Stop Loss loop)
         """
-        log.info(f"📡 MONITOR — {datetime.now().strftime('%H:%M:%S')}")
+        log.info(f"ð¡ MONITOR â {datetime.now().strftime('%H:%M:%S')}")
 
-        # หา algo_id
+        # à¸«à¸² algo_id
         algo_id = self.get_running_algo_id()
         if not algo_id:
             algo_id = self.db.get_algo_id()
         if not algo_id:
-            log.warning("⚠️  ไม่พบ Grid ที่รันอยู่ — รัน MODE=start ก่อน")
+            log.warning("â ï¸  à¹à¸¡à¹à¸à¸ Grid à¸à¸µà¹à¸£à¸±à¸à¸­à¸¢à¸¹à¹ â à¸£à¸±à¸ MODE=start à¸à¹à¸­à¸")
             return
 
-        # ดึงราคาปัจจุบัน
+        # à¸à¸¶à¸à¸£à¸²à¸à¸²à¸à¸±à¸à¸à¸¸à¸à¸±à¸
         price = self.get_price()
 
-        # ดึงสถานะ Grid จาก OKX
+        # à¸à¸¶à¸à¸ªà¸à¸²à¸à¸° Grid à¸à¸²à¸ OKX
         state = "running"
         try:
             res = self.grid_api.grid_orders_algo_pending(
@@ -351,68 +350,68 @@ class GridManager:
         except Exception as e:
             log.error(f"get state error: {e}")
 
-        log.info(f"  💲 ETH: ${price:,.2f} | State: {state}")
+        log.info(f"  ð² ETH: ${price:,.2f} | State: {state}")
 
-        # ── AUTO-RESTART LOGIC ─────────────────────────────────
+        # ââ AUTO-RESTART LOGIC âââââââââââââââââââââââââââââââââ
         if state == "stopped":
             should_run = self.db.get_should_run(algo_id)
-            log.info(f"  🏷️  should_run = {should_run}")
+            log.info(f"  ð·ï¸  should_run = {should_run}")
 
             if should_run:
-                # ตรวจสอบราคา ก่อน restart เสมอ
+                # à¸à¸£à¸§à¸à¸ªà¸­à¸à¸£à¸²à¸à¸² à¸à¹à¸­à¸ restart à¹à¸ªà¸¡à¸­
                 price_in_range = float(GRID_LOWER) < price < float(GRID_UPPER)
 
                 if price_in_range:
-                    # ✅ ราคาอยู่ใน range → restart ปลอดภัย
-                    log.warning("⚠️  บอทหยุดโดย OKX — กำลัง restart อัตโนมัติ...")
+                    # â à¸£à¸²à¸à¸²à¸­à¸¢à¸¹à¹à¹à¸ range â restart à¸à¸¥à¸­à¸à¸ à¸±à¸¢
+                    log.warning("â ï¸  à¸à¸­à¸à¸«à¸¢à¸¸à¸à¹à¸à¸¢ OKX â à¸à¸³à¸¥à¸±à¸ restart à¸­à¸±à¸à¹à¸à¸¡à¸±à¸à¸´...")
                     send_telegram(
-                        f"⚠️ <b>Grid Bot {LEVERAGE}x หยุดโดย OKX!</b>\n"
-                        f"💲 ETH: ${price:,.2f} (ยังอยู่ใน range)\n"
-                        f"🔄 กำลัง restart อัตโนมัติ..."
+                        f"â ï¸ <b>Grid Bot {LEVERAGE}x à¸«à¸¢à¸¸à¸à¹à¸à¸¢ OKX!</b>\n"
+                        f"ð² ETH: ${price:,.2f} (à¸¢à¸±à¸à¸­à¸¢à¸¹à¹à¹à¸ range)\n"
+                        f"ð à¸à¸³à¸¥à¸±à¸ restart à¸­à¸±à¸à¹à¸à¸¡à¸±à¸à¸´..."
                     )
                     try:
                         new_algo_id = self._do_start_algo(price)
                         if new_algo_id:
-                            log.info(f"✅ Restart สำเร็จ! Algo ID: {new_algo_id}")
+                            log.info(f"â Restart à¸ªà¸³à¹à¸£à¹à¸! Algo ID: {new_algo_id}")
                             self.db.update_status(new_algo_id, "running", price, 0.0, 0)
                             self.db.set_should_run(new_algo_id, True)
                             send_telegram(
-                                f"✅ <b>Grid Bot {LEVERAGE}x restart สำเร็จ!</b>\n"
-                                f"💲 ETH: ${price:,.2f}\n"
-                                f"📊 Range: ${GRID_LOWER}–${GRID_UPPER}\n"
-                                f"🔗 Algo ID ใหม่: <code>{new_algo_id}</code>"
+                                f"â <b>Grid Bot {LEVERAGE}x restart à¸ªà¸³à¹à¸£à¹à¸!</b>\n"
+                                f"ð² ETH: ${price:,.2f}\n"
+                                f"ð Range: ${GRID_LOWER}â${GRID_UPPER}\n"
+                                f"ð Algo ID à¹à¸«à¸¡à¹: <code>{new_algo_id}</code>"
                             )
                         else:
                             send_telegram(
-                                f"❌ <b>Grid Bot {LEVERAGE}x restart ล้มเหลว!</b>\n"
-                                f"กรุณาตรวจสอบ GitHub Actions log"
+                                f"â <b>Grid Bot {LEVERAGE}x restart à¸¥à¹à¸¡à¹à¸«à¸¥à¸§!</b>\n"
+                                f"à¸à¸£à¸¸à¸à¸²à¸à¸£à¸§à¸à¸ªà¸­à¸ GitHub Actions log"
                             )
                     except Exception as e:
                         log.error(f"auto-restart error: {e}")
                         send_telegram(
-                            f"❌ <b>Grid Bot {LEVERAGE}x restart error!</b>\n"
+                            f"â <b>Grid Bot {LEVERAGE}x restart error!</b>\n"
                             f"Error: {str(e)[:100]}"
                         )
                 else:
-                    # ⛔ ราคาอยู่นอก range → อาจ Stop Loss ทำงาน → ไม่ restart
-                    log.warning(f"⛔ ราคา ${price:,.2f} อยู่นอก range — ไม่ restart อัตโนมัติ")
-                    self.db.set_should_run(algo_id, False)  # หยุดพยายาม restart
+                    # â à¸£à¸²à¸à¸²à¸­à¸¢à¸¹à¹à¸à¸­à¸ range â à¸­à¸²à¸ Stop Loss à¸à¸³à¸à¸²à¸ â à¹à¸¡à¹ restart
+                    log.warning(f"â à¸£à¸²à¸à¸² ${price:,.2f} à¸­à¸¢à¸¹à¹à¸à¸­à¸ range â à¹à¸¡à¹ restart à¸­à¸±à¸à¹à¸à¸¡à¸±à¸à¸´")
+                    self.db.set_should_run(algo_id, False)  # à¸«à¸¢à¸¸à¸à¸à¸¢à¸²à¸¢à¸²à¸¡ restart
                     self.db.update_status(algo_id, "stopped", price, 0.0, 0)
                     send_telegram(
-                        f"🚨 <b>Grid Bot {LEVERAGE}x หยุด + ราคานอก range!</b>\n"
-                        f"💲 ETH: <b>${price:,.2f}</b>\n"
-                        f"📊 Range: ${GRID_LOWER}–${GRID_UPPER}\n"
-                        f"⚠️ อาจเกิดจาก Stop Loss trigger\n"
-                        f"🔕 ไม่ restart อัตโนมัติ — กรุณาตรวจสอบและ restart มือเองถ้าต้องการ"
+                        f"ð¨ <b>Grid Bot {LEVERAGE}x à¸«à¸¢à¸¸à¸ + à¸£à¸²à¸à¸²à¸à¸­à¸ range!</b>\n"
+                        f"ð² ETH: <b>${price:,.2f}</b>\n"
+                        f"ð Range: ${GRID_LOWER}â${GRID_UPPER}\n"
+                        f"â ï¸ à¸­à¸²à¸à¹à¸à¸´à¸à¸à¸²à¸ Stop Loss trigger\n"
+                        f"ð à¹à¸¡à¹ restart à¸­à¸±à¸à¹à¸à¸¡à¸±à¸à¸´ â à¸à¸£à¸¸à¸à¸²à¸à¸£à¸§à¸à¸ªà¸­à¸à¹à¸¥à¸° restart à¸¡à¸·à¸­à¹à¸­à¸à¸à¹à¸²à¸à¹à¸­à¸à¸à¸²à¸£"
                     )
             else:
-                # should_run=False → หยุดแบบตั้งใจ → ไม่ restart
-                log.info("ℹ️  บอทหยุดแบบตั้งใจ (should_run=False) — ไม่ restart")
+                # should_run=False â à¸«à¸¢à¸¸à¸à¹à¸à¸à¸à¸±à¹à¸à¹à¸ â à¹à¸¡à¹ restart
+                log.info("â¹ï¸  à¸à¸­à¸à¸«à¸¢à¸¸à¸à¹à¸à¸à¸à¸±à¹à¸à¹à¸ (should_run=False) â à¹à¸¡à¹ restart")
                 self.db.update_status(algo_id, "stopped", price, 0.0, 0)
-            return  # จบ — ไม่ต้องดึง trades เพราะบอทหยุดแล้ว
+            return  # à¸à¸ â à¹à¸¡à¹à¸à¹à¸­à¸à¸à¸¶à¸ trades à¹à¸à¸£à¸²à¸°à¸à¸­à¸à¸«à¸¢à¸¸à¸à¹à¸¥à¹à¸§
 
-        # ── บอทกำลังรันปกติ → ดึงข้อมูลและบันทึก ──────────────
-        # ดึง trades ที่ filled ใหม่
+        # ââ à¸à¸­à¸à¸à¸³à¸¥à¸±à¸à¸£à¸±à¸à¸à¸à¸à¸´ â à¸à¸¶à¸à¸à¹à¸­à¸¡à¸¹à¸¥à¹à¸¥à¸°à¸à¸±à¸à¸à¸¶à¸ ââââââââââââââ
+        # à¸à¸¶à¸ trades à¸à¸µà¹ filled à¹à¸«à¸¡à¹
         new_trades = []
         try:
             res = self.grid_api.grid_sub_orders(
@@ -425,32 +424,32 @@ class GridManager:
         except Exception as e:
             log.error(f"get sub_orders error: {e}")
 
-        # บันทึก trades ใหม่
+        # à¸à¸±à¸à¸à¸¶à¸ trades à¹à¸«à¸¡à¹
         saved = self.db.save_trades(new_trades, algo_id)
         if saved:
-            log.info(f"  💾 บันทึก {saved} trades ใหม่")
+            log.info(f"  ð¾ à¸à¸±à¸à¸à¸¶à¸ {saved} trades à¹à¸«à¸¡à¹")
 
-        # ดึงยอดรวมจาก Supabase
+        # à¸à¸¶à¸à¸¢à¸­à¸à¸£à¸§à¸¡à¸à¸²à¸ Supabase
         total_profit, trade_count = self.db.get_total_profit(algo_id)
 
-        # อัปเดตสถานะ
+        # à¸­à¸±à¸à¹à¸à¸à¸ªà¸à¸²à¸à¸°
         self.db.update_status(algo_id, state, price, total_profit, trade_count)
         self.db.save_daily_pnl(algo_id, total_profit, trade_count)
 
         pct = (total_profit / TOTAL_CAPITAL) * 100 if TOTAL_CAPITAL else 0
-        log.info(f"  💵 PnL: ${total_profit:.4f} ({pct:.4f}%) | Trades: {trade_count}")
-        log.info("  ✅ Monitor เสร็จ")
+        log.info(f"  ðµ PnL: ${total_profit:.4f} ({pct:.4f}%) | Trades: {trade_count}")
+        log.info("  â Monitor à¹à¸ªà¸£à¹à¸")
 
-    # ── MODE: stop ────────────────────────────────────────────
+    # ââ MODE: stop ââââââââââââââââââââââââââââââââââââââââââââ
     def cmd_stop(self):
-        """สั่ง OKX หยุด Grid + ตั้ง should_run=False + แจ้ง Telegram"""
-        log.info("⛔ MODE: STOP GRID")
+        """à¸ªà¸±à¹à¸ OKX à¸«à¸¢à¸¸à¸ Grid + à¸à¸±à¹à¸ should_run=False + à¹à¸à¹à¸ Telegram"""
+        log.info("â MODE: STOP GRID")
 
         algo_id = self.get_running_algo_id()
         if not algo_id:
             algo_id = self.db.get_algo_id()
         if not algo_id:
-            log.warning("⚠️  ไม่พบ Grid ที่รันอยู่")
+            log.warning("â ï¸  à¹à¸¡à¹à¸à¸ Grid à¸à¸µà¹à¸£à¸±à¸à¸­à¸¢à¸¹à¹")
             return
 
         try:
@@ -462,28 +461,28 @@ class GridManager:
             )
             if res["code"] == "0":
                 price = self.get_price()
-                log.info(f"✅ หยุด Grid สำเร็จ | Algo ID: {algo_id}")
+                log.info(f"â à¸«à¸¢à¸¸à¸ Grid à¸ªà¸³à¹à¸£à¹à¸ | Algo ID: {algo_id}")
                 self.db.update_status(algo_id, "stopped", price, 0.0, 0)
-                self.db.set_should_run(algo_id, False)  # ← ตั้งใจหยุด ← ไม่ auto-restart
+                self.db.set_should_run(algo_id, False)  # â à¸à¸±à¹à¸à¹à¸à¸«à¸¢à¸¸à¸ â à¹à¸¡à¹ auto-restart
                 send_telegram(
-                    f"🛑 <b>Grid Bot {LEVERAGE}x หยุดแล้ว</b>\n"
-                    f"ℹ️ หยุดแบบตั้งใจ (manual stop)\n"
-                    f"💲 ETH: ${price:,.2f}\n"
-                    f"🔗 Algo ID: <code>{algo_id}</code>\n"
-                    f"🔕 Auto-restart ถูกปิดแล้ว"
+                    f"ð <b>Grid Bot {LEVERAGE}x à¸«à¸¢à¸¸à¸à¹à¸¥à¹à¸§</b>\n"
+                    f"â¹ï¸ à¸«à¸¢à¸¸à¸à¹à¸à¸à¸à¸±à¹à¸à¹à¸ (manual stop)\n"
+                    f"ð² ETH: ${price:,.2f}\n"
+                    f"ð Algo ID: <code>{algo_id}</code>\n"
+                    f"ð Auto-restart à¸à¸¹à¸à¸à¸´à¸à¹à¸¥à¹à¸§"
                 )
             else:
-                log.error(f"❌ หยุดไม่ได้: {res.get('msg')}")
+                log.error(f"â à¸«à¸¢à¸¸à¸à¹à¸¡à¹à¹à¸à¹: {res.get('msg')}")
         except Exception as e:
             log.error(f"cmd_stop error: {e}")
 
 
 # ============================================================
-#  🚀  ENTRY POINT
+#  ð  ENTRY POINT
 # ============================================================
 def main():
-    env_label = "🧪 DEMO" if FLAG == "1" else "🔴 LIVE"
-    log.info(f"🤖 Grid Bot {LEVERAGE}x | Mode: {MODE.upper()} | {env_label}")
+    env_label = "ð§ª DEMO" if FLAG == "1" else "ð´ LIVE"
+    log.info(f"ð¤ Grid Bot {LEVERAGE}x | Mode: {MODE.upper()} | {env_label}")
 
     bot = GridManager()
 
@@ -494,7 +493,7 @@ def main():
     elif MODE == "stop":
         bot.cmd_stop()
     else:
-        log.error(f"❌ MODE ไม่ถูกต้อง: '{MODE}' (ต้องเป็น start | monitor | stop)")
+        log.error(f"â MODE à¹à¸¡à¹à¸à¸¹à¸à¸à¹à¸­à¸: '{MODE}' (à¸à¹à¸­à¸à¹à¸à¹à¸ start | monitor | stop)")
         sys.exit(1)
 
 
