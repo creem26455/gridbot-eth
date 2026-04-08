@@ -18,6 +18,7 @@ Bot IDs: trend_v1_2x | trend_v1_3x | trend_v1_5x
 import os
 import sys
 import logging
+import requests
 from datetime import datetime, timezone, date
 
 try:
@@ -47,6 +48,9 @@ FLAG          = os.environ.get("OKX_FLAG",        "1")   # "1"=Demo "0"=Live
 SUPABASE_URL  = os.environ.get("SUPABASE_URL",    "YOUR_SUPABASE_URL")
 SUPABASE_KEY  = os.environ.get("SUPABASE_KEY",    "YOUR_SUPABASE_KEY")
 
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID",   "")
+
 MODE          = os.environ.get("MODE", "monitor")   # start | monitor | stop
 LEVERAGE      = os.environ.get("LEVERAGE", "3")
 BOT_TAG       = "trend_v1"                          # แยกจาก grid bot เดิม
@@ -54,7 +58,7 @@ BOT_TAG       = "trend_v1"                          # แยกจาก grid bo
 INST_ID       = "ETH-USDT-SWAP"
 GRID_COUNT    = "25"
 RUN_TYPE      = "1"           # 1 = Arithmetic
-TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "200"))
+TOTAL_CAPITAL = float(os.environ.get("CAPITAL", "1600"))
 
 # Stop Loss offset ตาม leverage (ยิ่ง leverage สูง SL ใกล้ขึ้น)
 SL_OFFSET = {"2": 0.12, "3": 0.10, "5": 0.08}
@@ -69,6 +73,29 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 log = logging.getLogger("TrendBot")
+
+
+# ============================================================
+#  📱  TELEGRAM
+# ============================================================
+def send_telegram(message: str):
+    """ส่งข้อความแจ้งเตือนผ่าน Telegram Bot"""
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        log.warning("⚠️ Telegram ไม่ได้ตั้งค่า — ข้ามการแจ้งเตือน")
+        return
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        resp = requests.post(url, json={
+            "chat_id":    TELEGRAM_CHAT_ID,
+            "text":       message,
+            "parse_mode": "HTML",
+        }, timeout=10)
+        if resp.status_code == 200:
+            log.info("📱 ส่ง Telegram สำเร็จ")
+        else:
+            log.warning(f"⚠️ Telegram ส่งไม่สำเร็จ: {resp.status_code} {resp.text[:100]}")
+    except Exception as e:
+        log.warning(f"⚠️ Telegram error: {e}")
 
 
 # ============================================================
@@ -131,6 +158,24 @@ class DB:
             return res.data[0]["bot_id"]
         return ""
 
+    def set_should_run(self, algo_id: str, value: bool):
+        """ตั้งค่า should_run flag — True=บอทควรรัน, False=หยุดแบบตั้งใจ"""
+        self.client.table("bot_status").update({
+            "should_run": value,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("bot_id", algo_id).execute()
+        log.info(f"  🏷️  should_run → {value}")
+
+    def get_should_run(self, algo_id: str) -> bool:
+        """ดึงค่า should_run flag (default=True ถ้าไม่มีข้อมูล)"""
+        res = self.client.table("bot_status") \
+                  .select("should_run") \
+                  .eq("bot_id", algo_id) \
+                  .limit(1).execute()
+        if res.data:
+            return res.data[0].get("should_run", True)
+        return True  # ถ้าไม่มีข้อมูล → ถือว่าควรรัน
+
     def get_total_profit(self, algo_id: str) -> tuple:
         res = self.client.table("trades") \
                   .select("profit") \
@@ -190,6 +235,54 @@ class TrendGridManager:
         return ""
 
     # ── MODE: start ──────────────────────────────────────────
+    def _do_start_algo(self, price: float, trend: str) -> str:
+        """
+        สั่ง OKX เปิด Grid จริงๆ — คืน algo_id ถ้าสำเร็จ, "" ถ้าล้มเหลว
+        แยกออกมาเพื่อให้ cmd_start() และ auto-restart ใช้ร่วมกันได้
+        """
+        # Trend UP → คำนวณ Range แบบ Trailing
+        grid_lower, grid_upper = get_trend_range(price, trend)
+        sl_offset = SL_OFFSET.get(str(LEVERAGE), 0.10)
+        stop_loss = str(int(float(grid_lower) * (1 - sl_offset)))
+
+        log.info(f"🟢 Trend {trend} | Range: ${grid_lower}–${grid_upper}")
+
+        # ตรวจสอบราคาอยู่ใน range
+        if not (float(grid_lower) < price < float(grid_upper)):
+            log.error(f"❌ ราคา ${price:,.2f} อยู่นอก range — ข้ามการเปิด")
+            return ""
+
+        # สั่ง OKX เปิด Grid
+        params = {
+            "instId":      INST_ID,
+            "algoOrdType": "contract_grid",
+            "maxPx":       grid_upper,
+            "minPx":       grid_lower,
+            "gridNum":     GRID_COUNT,
+            "runType":     RUN_TYPE,
+            "direction":   "long",
+            "lever":       LEVERAGE,
+            "sz":          str(int(TOTAL_CAPITAL)),
+            "slTriggerPx": stop_loss,
+        }
+
+        try:
+            res = self.grid_api.grid_order_algo(**params)
+            if res["code"] == "0":
+                algo_id = res["data"][0]["algoId"]
+                log.info(f"✅ Trend Grid เปิดสำเร็จ! Algo ID: {algo_id}")
+                self.db.update_status(
+                    algo_id, "running", price, 0.0, 0,
+                    float(grid_lower), float(grid_upper), trend
+                )
+                return algo_id
+            else:
+                log.error(f"❌ เปิด Grid ไม่ได้: code={res.get('code')} msg={res.get('msg')}")
+                return ""
+        except Exception as e:
+            log.error(f"_do_start_algo error: {e}")
+            return ""
+
     def cmd_start(self):
         log.info("=" * 60)
         log.info(f"  🚀 TREND BOT {LEVERAGE}x — MODE: START")
@@ -221,48 +314,11 @@ class TrendGridManager:
             log.warning("   Monitor จะเช็คใหม่ใน 10 นาที")
             return
 
-        # Trend UP → คำนวณ Range แบบ Trailing
-        grid_lower, grid_upper = get_trend_range(price, trend)
-        sl_offset = SL_OFFSET.get(str(LEVERAGE), 0.10)
-        stop_loss = str(int(float(grid_lower) * (1 - sl_offset)))
-
-        log.info(f"🟢 Trend UP | EMA50: ${ema50:,.2f} > EMA200: ${ema200:,.2f}")
-        log.info(f"   Price: ${price:,.2f} | Range: ${grid_lower}–${grid_upper}")
-        log.info(f"   Stop Loss: ${stop_loss} ({int(sl_offset*100)}% ต่ำกว่า lower)")
-
-        # ตรวจสอบราคาอยู่ใน range
-        if not (float(grid_lower) < price < float(grid_upper)):
-            log.error(f"❌ ราคา ${price:,.2f} อยู่นอก range")
-            return
-
-        # สั่ง OKX เปิด Grid
-        params = {
-            "instId":      INST_ID,
-            "algoOrdType": "contract_grid",
-            "maxPx":       grid_upper,
-            "minPx":       grid_lower,
-            "gridNum":     GRID_COUNT,
-            "runType":     RUN_TYPE,
-            "direction":   "long",
-            "lever":       LEVERAGE,
-            "sz":          str(int(TOTAL_CAPITAL)),
-            "slTriggerPx": stop_loss,
-        }
-
-        try:
-            res = self.grid_api.grid_order_algo(**params)
-            if res["code"] == "0":
-                algo_id = res["data"][0]["algoId"]
-                log.info(f"✅ Trend Grid เปิดสำเร็จ! Algo ID: {algo_id}")
-                self.db.update_status(
-                    algo_id, "running", price, 0.0, 0,
-                    float(grid_lower), float(grid_upper), trend
-                )
-            else:
-                log.error(f"❌ เปิด Grid ไม่ได้: {res}")
-                sys.exit(1)
-        except Exception as e:
-            log.error(f"cmd_start error: {e}")
+        # เรียก helper method เพื่อเปิด Grid
+        algo_id = self._do_start_algo(price, trend)
+        if algo_id:
+            self.db.set_should_run(algo_id, True)
+        else:
             sys.exit(1)
 
     # ── MODE: monitor ────────────────────────────────────────
@@ -297,7 +353,74 @@ class TrendGridManager:
 
         price = self.get_price()
 
-        # ดึง trades ใหม่
+        # ── AUTO-RESTART LOGIC ─────────────────────────────────
+        if state == "stopped":
+            should_run = self.db.get_should_run(algo_id)
+            log.info(f"  🏷️  should_run = {should_run}")
+
+            if should_run:
+                # ดึง Trend ล่าสุด เพื่อหา range
+                trend, ema50, ema200, _ = get_trend(self.market_api, INST_ID)
+
+                # คำนวณ range ตาม Trend
+                tr_lower, tr_upper = get_trend_range(price, trend)
+
+                # ตรวจสอบราคา ก่อน restart เสมอ
+                price_in_range = float(tr_lower) < price < float(tr_upper)
+
+                if price_in_range and trend == "UP":
+                    # ✅ ราคาอยู่ใน range และ Trend UP → restart ปลอดภัย
+                    log.warning("⚠️  บอทหยุดโดย OKX — กำลัง restart อัตโนมัติ...")
+                    send_telegram(
+                        f"⚠️ <b>Trend Bot {LEVERAGE}x หยุดโดย OKX!</b>\n"
+                        f"💲 ETH: ${price:,.2f} (ยังอยู่ใน range)\n"
+                        f"📊 Trend: {trend}\n"
+                        f"🔄 กำลัง restart อัตโนมัติ..."
+                    )
+                    try:
+                        new_algo_id = self._do_start_algo(price, trend)
+                        if new_algo_id:
+                            log.info(f"✅ Restart สำเร็จ! Algo ID: {new_algo_id}")
+                            self.db.update_status(new_algo_id, "running", price, 0.0, 0,
+                                                 float(tr_lower), float(tr_upper), trend)
+                            self.db.set_should_run(new_algo_id, True)
+                            send_telegram(
+                                f"✅ <b>Trend Bot {LEVERAGE}x restart สำเร็จ!</b>\n"
+                                f"💲 ETH: ${price:,.2f}\n"
+                                f"📊 Range: ${tr_lower}–${tr_upper} | Trend: {trend}\n"
+                                f"🔗 Algo ID ใหม่: <code>{new_algo_id}</code>"
+                            )
+                        else:
+                            send_telegram(
+                                f"❌ <b>Trend Bot {LEVERAGE}x restart ล้มเหลว!</b>\n"
+                                f"กรุณาตรวจสอบ GitHub Actions log"
+                            )
+                    except Exception as e:
+                        log.error(f"auto-restart error: {e}")
+                        send_telegram(
+                            f"❌ <b>Trend Bot {LEVERAGE}x restart error!</b>\n"
+                            f"Error: {str(e)[:100]}"
+                        )
+                else:
+                    # ⛔ ราคาอยู่นอก range หรือ Trend ไม่ใช่ UP → อาจ Stop Loss ทำงาน → ไม่ restart
+                    log.warning(f"⛔ ราคา ${price:,.2f} อยู่นอก range หรือ Trend != UP — ไม่ restart อัตโนมัติ")
+                    self.db.set_should_run(algo_id, False)  # หยุดพยายาม restart
+                    self.db.update_status(algo_id, "stopped", price, 0.0, 0)
+                    send_telegram(
+                        f"🚨 <b>Trend Bot {LEVERAGE}x หยุด + ราคานอก range!</b>\n"
+                        f"💲 ETH: <b>${price:,.2f}</b>\n"
+                        f"📊 Range: ${tr_lower}–${tr_upper} | Trend: {trend}\n"
+                        f"⚠️ อาจเกิดจาก Stop Loss trigger\n"
+                        f"🔕 ไม่ restart อัตโนมัติ — กรุณาตรวจสอบและ restart มือเองถ้าต้องการ"
+                    )
+            else:
+                # should_run=False → หยุดแบบตั้งใจ → ไม่ restart
+                log.info("ℹ️  บอทหยุดแบบตั้งใจ (should_run=False) — ไม่ restart")
+                self.db.update_status(algo_id, "stopped", price, 0.0, 0)
+            return  # จบ — ไม่ต้องดึง trades เพราะบอทหยุดแล้ว
+
+        # ── บอทกำลังรันปกติ → ดึงข้อมูลและบันทึก ──────────────
+        # ดึง trades ที่ filled ใหม่
         new_trades = []
         try:
             res = self.grid_api.grid_sub_orders(
@@ -353,6 +476,11 @@ class TrendGridManager:
                 log.info(f"✅ หยุด Trend Grid สำเร็จ | Algo ID: {algo_id}")
                 self.db.update_status(
                     algo_id, "stopped", self.get_price(), 0.0, 0
+                )
+                self.db.set_should_run(algo_id, False)  # หยุดแบบตั้งใจ — ไม่ restart อัตโนมัติ
+                send_telegram(
+                    f"⛔ <b>Trend Bot {LEVERAGE}x หยุดแล้ว</b>\n"
+                    f"🏷️  should_run = False (ไม่ restart อัตโนมัติ)"
                 )
             else:
                 log.error(f"❌ หยุดไม่ได้: {res}")
