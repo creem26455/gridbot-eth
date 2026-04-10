@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GridBot Pro &#8212; ETH/USDT Dashboard</title>
+  <title>GridBot Pro — ETH/USDT Dashboard</title>
+  <!-- Chart.js for PnL bar chart -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- TradingView Lightweight Charts for Candlestick -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
   <style>
-    /* ══════════════════════════════════════════
-       Catppuccin Mocha — Multi-Bot Design
-    ══════════════════════════════════════════ */
     :root {
       --base:    #1e1e2e;
       --mantle:  #181825;
@@ -26,582 +26,531 @@
       --teal:    #89dceb;
       --peach:   #fab387;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
-
+    html, body { height: 100%; overflow: hidden; }
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: var(--base);
       color: var(--text);
       display: flex;
       height: 100vh;
-      overflow: hidden;
     }
 
-    /* ══ SIDEBAR ══════════════════════════════════════ */
+    /* ══ LEFT SIDEBAR ═══════════════════════════════════════ */
     .sidebar {
-      width: 240px;
-      min-width: 240px;
+      width: 52px;
       background: var(--mantle);
-      display: flex;
-      flex-direction: column;
-      padding: 0;
       border-right: 1px solid var(--surf0);
-      overflow: hidden;
-    }
-
-    .sidebar-logo {
-      padding: 24px 20px 16px;
-      border-bottom: 1px solid var(--surf0);
-    }
-    .sidebar-logo h1 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-    .sidebar-logo p {
-      font-size: 0.75rem;
-      color: var(--overlay);
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 12px 10px;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
       gap: 4px;
-    }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      color: var(--overlay);
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-      border-left: 3px solid transparent;
-      text-decoration: none;
-    }
-    .nav-item:hover { background: var(--surf0); color: var(--subtext); }
-    .nav-item.active {
-      background: var(--surf0);
-      color: var(--blue);
-      border-left-color: var(--blue);
-      font-weight: 600;
-    }
-    .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
-
-    /* Bot status list in sidebar */
-    .sidebar-bots {
-      padding: 10px 10px 4px;
-      border-top: 1px solid var(--surf0);
-    }
-    .sidebar-bots-label {
-      font-size: 0.65rem;
-      color: var(--overlay);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 0 4px;
-      margin-bottom: 6px;
-    }
-    .sidebar-bot-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-    }
-    .sb-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
       flex-shrink: 0;
     }
-    .sb-dot.running { background: var(--green); animation: pulse 2s infinite; }
-    .sb-dot.stopped { background: var(--red); }
-    .sb-dot.pending { background: var(--overlay); }
-    @keyframes pulse {
-      0%,100% { opacity:1; } 50% { opacity:.35; }
+    .s-logo { font-size: 1.3rem; margin-bottom: 8px; cursor: default; }
+    .s-nav-btn {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; cursor: pointer; color: var(--overlay);
+      transition: background 0.15s, color 0.15s; text-decoration: none;
     }
-    .sb-lev { font-weight: 700; }
-    .sb-lev.lev2 { color: var(--teal); }
-    .sb-lev.lev3 { color: var(--blue); }
-    .sb-lev.lev5 { color: var(--mauve); }
-    .sb-profit { margin-left: auto; font-size: 0.72rem; }
+    .s-nav-btn:hover { background: var(--surf0); color: var(--subtext); }
+    .s-nav-btn.active { background: var(--surf0); color: var(--blue); }
+    .s-sep { width: 28px; height: 1px; background: var(--surf0); margin: 4px 0; }
 
-    .sidebar-footer {
-      padding: 12px 20px;
-      border-top: 1px solid var(--surf0);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .mode-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surf0);
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--yellow);
-    }
-    .running-count {
-      font-size: 0.72rem;
-      color: var(--subtext);
-    }
+    /* ══ MAIN ════════════════════════════════════════════════ */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 
-    /* ══ MAIN CONTENT ══════════════════════════════ */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
+    /* ── Topbar ─────────────────────────────────────────── */
     .topbar {
       background: var(--mantle);
       border-bottom: 1px solid var(--surf0);
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      padding: 10px 18px;
+      display: flex; align-items: center; gap: 20px;
       flex-shrink: 0;
     }
-    .topbar-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--text);
+    .tb-title { font-size: 0.9rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .tb-price {
+      font-size: 1.4rem; font-weight: 800; color: var(--yellow);
+      font-family: 'Cascadia Code', 'Consolas', monospace; letter-spacing: -0.02em;
     }
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
+    .tb-change {
+      font-size: 0.8rem; font-weight: 600; padding: 3px 9px; border-radius: 6px;
     }
-    .topbar-update {
-      font-size: 0.78rem;
-      color: var(--overlay);
-    }
+    .tb-change.up   { background: rgba(166,227,161,.18); color: var(--green); }
+    .tb-change.down { background: rgba(243,139,168,.18); color: var(--red); }
+    .tb-divider { width: 1px; height: 28px; background: var(--surf0); }
+    .tb-stat { display: flex; flex-direction: column; gap: 2px; }
+    .tb-stat-lbl { font-size: 0.62rem; color: var(--overlay); text-transform: uppercase; letter-spacing: 0.05em; }
+    .tb-stat-val { font-size: 1rem; font-weight: 800; font-family: 'Cascadia Code', 'Consolas', monospace; letter-spacing: -0.01em; }
+    .tb-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .tb-time { font-size: 0.72rem; color: var(--overlay); }
     .refresh-btn {
-      background: var(--surf0);
-      border: none;
-      border-radius: 8px;
-      padding: 6px 14px;
-      font-size: 0.78rem;
-      color: var(--subtext);
-      cursor: pointer;
-      transition: background 0.15s;
+      background: var(--surf0); border: none; border-radius: 7px;
+      padding: 5px 12px; font-size: 0.75rem; color: var(--subtext);
+      cursor: pointer; transition: background 0.15s;
     }
     .refresh-btn:hover { background: var(--surf1); color: var(--text); }
 
+    /* ── Content ─────────────────────────────────────────── */
     .content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 24px 24px;
+      flex: 1; overflow-y: auto;
+      padding: 14px 16px 16px;
+      display: flex; flex-direction: column; gap: 12px;
     }
-    .content::-webkit-scrollbar { width: 6px; }
-    .content::-webkit-scrollbar-track { background: transparent; }
+    .content::-webkit-scrollbar { width: 5px; }
     .content::-webkit-scrollbar-thumb { background: var(--surf1); border-radius: 3px; }
 
-    /* ══ MULTI-BOT CARDS ══════════════════════════ */
-    .bots-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
+    /* ── Row 1: Price Chart + P&L Breakdown ─────────────── */
+    .row-main { display: grid; grid-template-columns: 1fr 300px; gap: 12px; }
 
-    .bot-card {
-      background: var(--surf0);
-      border-radius: 12px;
-      padding: 18px;
-      border-left: 4px solid var(--surf1);
-      transition: transform 0.15s;
-      position: relative;
+    .panel { background: var(--surf0); border-radius: 12px; padding: 14px 16px; }
+    .panel-hdr {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--subtext); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
     }
-    .bot-card:hover { transform: translateY(-2px); }
-    .bot-card.lev2  { border-left-color: var(--teal); }
-    .bot-card.lev3  { border-left-color: var(--blue); }
-    .bot-card.lev5  { border-left-color: var(--mauve); }
-    .bot-card.tlev2 { border-left-color: var(--green); }
-    .bot-card.tlev3 { border-left-color: var(--yellow); }
-    .bot-card.tlev5 { border-left-color: var(--peach); }
-    .bot-card.bot-offline { opacity: 0.55; border-left-color: var(--surf1); }
+    .panel-hdr-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-    /* Trend Bot section */
-    .section-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--overlay);
-      padding: 4px 2px 6px;
-      border-bottom: 1px solid var(--surf0);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .section-label .sl-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--green);
-    }
+    /* ── Candlestick Chart (Lightweight Charts) ──────────── */
+    .chart-wrap { position: relative; height: 310px; }
+    .chart-wrap > div { border-radius: 8px; overflow: hidden; }
 
-    .bot-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
+    /* Chart interval selector */
+    .chart-controls {
+      display: flex; align-items: center; gap: 6px; margin-left: auto;
     }
-    .bot-title {
-      font-size: 0.8rem;
-      color: var(--subtext);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    .interval-btn {
+      background: var(--base); border: 1px solid var(--surf1);
+      border-radius: 5px; padding: 2px 8px; font-size: 0.65rem;
+      color: var(--overlay); cursor: pointer; transition: all 0.15s;
     }
-    .lev-badge {
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 6px;
-      letter-spacing: 0.03em;
-    }
-    .lev-badge.lev2  { background: rgba(137,220,235,.15); color: var(--teal); }
-    .lev-badge.lev3  { background: rgba(137,180,250,.15); color: var(--blue); }
-    .lev-badge.lev5  { background: rgba(203,166,247,.15); color: var(--mauve); }
-    .lev-badge.tlev2 { background: rgba(166,227,161,.15); color: var(--green); }
-    .lev-badge.tlev3 { background: rgba(249,226,175,.15); color: var(--yellow); }
-    .lev-badge.tlev5 { background: rgba(250,179,135,.15); color: var(--peach); }
-    .lev-badge.offline { background: rgba(108,112,134,.1); color: var(--overlay); }
-    .trend-up   { color: var(--green); font-weight: 700; }
-    .trend-down { color: var(--red);   font-weight: 700; }
-    .trend-unk  { color: var(--overlay); }
+    .interval-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .interval-btn.active { background: rgba(137,180,250,.15); border-color: var(--blue); color: var(--blue); font-weight: 700; }
 
-    .bot-state {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 10px;
+    /* ── P&L Breakdown Panel ────────────────────────────── */
+    .pnl-breakdown { display: flex; flex-direction: column; gap: 0; }
+    .pnl-group-lbl {
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--overlay); padding: 6px 0 4px;
+      border-bottom: 1px solid var(--surf1); margin-bottom: 4px;
     }
-    .bot-profit {
-      font-size: 1.45rem;
-      font-weight: 700;
-      margin-bottom: 4px;
+    .pnl-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 8px; border-radius: 8px;
+      transition: background 0.12s;
+      border: 1px solid transparent;
     }
-    .bot-pct {
-      font-size: 0.78rem;
-      margin-bottom: 10px;
+    .pnl-row:hover { background: var(--mantle); }
+    .pnl-row.profit-positive { border-color: rgba(166,227,161,.12); background: rgba(166,227,161,.04); }
+    .pnl-row.profit-negative { border-color: rgba(243,139,168,.12); background: rgba(243,139,168,.04); }
+    .pnl-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .pnl-dot.running { animation: pulse 2s infinite; }
+    .pnl-dot.stopped { opacity: 0.7; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .pnl-name { font-size: 0.78rem; font-weight: 600; min-width: 62px; }
+    .pnl-status-tag {
+      font-size: 0.6rem; font-weight: 700; padding: 2px 7px;
+      border-radius: 4px; letter-spacing: 0.04em;
     }
-    .bot-rows { display: flex; flex-direction: column; gap: 4px; }
-    .bot-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .bot-key {
-      font-size: 0.7rem;
-      color: var(--overlay);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .bot-val {
-      font-size: 0.78rem;
-      color: var(--subtext);
-      font-weight: 600;
+    .pnl-status-tag.run  { background: rgba(166,227,161,.18); color: var(--green); }
+    .pnl-status-tag.stop { background: rgba(243,139,168,.12); color: var(--red); }
+    .pnl-figures { margin-left: auto; text-align: right; }
+
+    /* ✅ ตัวเลข PnL ใหญ่ขึ้น ชัดขึ้น */
+    .pnl-usd {
+      font-size: 1.35rem;
+      font-weight: 900;
       font-family: 'Cascadia Code', 'Consolas', monospace;
+      display: block;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
     }
-
-    /* ══ CHART + TABLE ROW ══════════════════════ */
-    .mid-row {
-      display: grid;
-      grid-template-columns: 3fr 2fr;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .panel {
-      background: var(--surf0);
-      border-radius: 12px;
-      padding: 18px;
-    }
-    .panel-title {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--subtext);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .panel-title-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--blue);
-    }
-
-    .chart-wrap { position: relative; height: 210px; }
-
-    /* ══ TRADES TABLE ══════════════════════════ */
-    .trades-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.82rem;
-    }
-    .trades-table th {
+    .pnl-meta {
+      font-size: 0.65rem;
       color: var(--overlay);
-      text-align: left;
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--surf1);
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 600;
+      margin-top: 3px;
+      display: flex; gap: 6px; justify-content: flex-end;
     }
-    .trades-table td {
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--mantle);
-      color: var(--subtext);
+    .pnl-apr { font-weight: 700; color: var(--yellow); }
+
+    /* ✅ Grand Total — hero number */
+    .pnl-total-row {
+      margin-top: 10px;
+      padding: 14px 14px;
+      border-radius: 12px;
+      background: var(--crust);
+      border: 1px solid var(--surf1);
+      display: flex; align-items: center; justify-content: space-between;
     }
+    .pnl-total-lbl {
+      font-size: 0.75rem; font-weight: 700; color: var(--subtext);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .pnl-total-val {
+      font-size: 2rem;
+      font-weight: 900;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      letter-spacing: -0.05em;
+      text-shadow: 0 0 20px currentColor;
+    }
+
+    /* ── Row 2 ─────────────────────────────────────────── */
+    .row-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .trades-wrap { overflow-y: auto; max-height: 195px; }
+    .trades-wrap::-webkit-scrollbar { width: 4px; }
+    .trades-wrap::-webkit-scrollbar-thumb { background: var(--surf1); border-radius: 2px; }
+    .trades-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .trades-table th {
+      color: var(--overlay); text-align: left; padding: 5px 8px;
+      border-bottom: 1px solid var(--surf1); font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;
+      position: sticky; top: 0; background: var(--surf0);
+    }
+    .trades-table td { padding: 7px 8px; border-bottom: 1px solid rgba(69,71,90,.4); color: var(--subtext); }
     .trades-table tr:last-child td { border-bottom: none; }
     .trades-table tbody tr:hover td { background: var(--mantle); }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 5px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-    }
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; }
     .badge.buy  { background: rgba(166,227,161,.15); color: var(--green); }
     .badge.sell { background: rgba(243,139,168,.15); color: var(--red); }
+    .empty-row td { text-align: center; color: var(--overlay); padding: 24px !important; font-size: 0.8rem; }
+    .chart-wrap-sm { position: relative; height: 190px; }
 
-    /* ══ SUMMARY BAR ══════════════════════════ */
-    .summary-bar {
-      background: var(--surf0);
-      border-radius: 12px;
-      padding: 12px 18px;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px 20px;
-      font-size: 0.75rem;
+    /* ══ RIGHT BOT STATUS PANEL ═════════════════════════════ */
+    .bot-status-panel {
+      width: 152px; flex-shrink: 0;
+      background: var(--mantle); border-left: 1px solid var(--surf0);
+      display: flex; flex-direction: column;
+      padding: 12px 10px; gap: 0; overflow-y: auto;
     }
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    .bot-status-panel::-webkit-scrollbar { width: 3px; }
+    .bot-status-panel::-webkit-scrollbar-thumb { background: var(--surf1); }
+    .bsp-title {
+      font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--overlay);
+      margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--surf0);
     }
-    .status-key { color: var(--overlay); }
-    .status-val { color: var(--text); font-weight: 600; font-family: 'Cascadia Code', 'Consolas', monospace; }
-    .status-val.green  { color: var(--green); }
-    .status-val.yellow { color: var(--yellow); }
-    .status-val.teal   { color: var(--teal); }
-    .status-val.mauve  { color: var(--mauve); }
-    .status-sep { color: var(--surf1); }
+    .bsp-group { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--overlay); padding: 6px 2px 4px; }
+    .bot-strip {
+      display: flex; align-items: center; gap: 6px; padding: 8px 8px;
+      border-radius: 8px; margin-bottom: 3px;
+      border: 1px solid var(--surf0); background: var(--base); transition: border-color 0.2s;
+    }
+    .bot-strip.running { border-color: rgba(166,227,161,.3); }
+    .bot-strip.stopped { border-color: rgba(243,139,168,.2); }
+    .bs-indicator { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .bs-indicator.running {
+      background: var(--green); box-shadow: 0 0 6px rgba(166,227,161,.6); animation: pulse 2s infinite;
+    }
+    .bs-indicator.stopped { background: var(--red); opacity: 0.7; }
+    .bs-indicator.pending { background: var(--overlay); }
+    .bs-info { flex: 1; min-width: 0; }
+    .bs-name { font-size: 0.72rem; font-weight: 700; display: block; white-space: nowrap; }
+    .bs-name.lev2 { color: var(--teal); }  .bs-name.lev3 { color: var(--blue); }
+    .bs-name.lev5 { color: var(--mauve); } .bs-name.tlev2 { color: var(--green); }
+    .bs-name.tlev3 { color: var(--yellow); } .bs-name.tlev5 { color: var(--peach); }
+    .bs-state { font-size: 0.58rem; color: var(--overlay); display: block; margin-top: 1px; }
+    .bs-state.run-txt  { color: var(--green); font-weight: 600; }
+    .bs-state.stop-txt { color: var(--red); }
 
-    .empty-row td {
-      text-align: center;
-      color: var(--overlay);
-      padding: 20px !important;
-      font-size: 0.82rem;
+    /* ✅ Total P&L ขวา — hero number ใหญ่ */
+    .bsp-total {
+      margin-top: 10px; padding: 14px 10px;
+      background: var(--crust); border-radius: 10px; text-align: center;
+      border: 1px solid var(--surf1);
     }
+    .bsp-total-lbl { font-size: 0.62rem; text-transform: uppercase; color: var(--overlay); letter-spacing: 0.08em; margin-bottom: 6px; font-weight: 700; }
+    .bsp-total-num {
+      font-size: 1.7rem;
+      font-weight: 900;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      text-shadow: 0 0 16px currentColor;
+    }
+    .bsp-running-summary { margin-top: 8px; font-size: 0.65rem; color: var(--subtext); text-align: center; }
+    .bsp-mode {
+      margin-top: 8px; padding: 5px 8px;
+      background: rgba(249,226,175,.1); border-radius: 6px;
+      font-size: 0.65rem; font-weight: 600; color: var(--yellow); text-align: center;
+    }
+
+    /* ── Candlestick price line labels ────────── */
+    .price-stat-bar {
+      display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;
+    }
+    .price-stat { display: flex; align-items: center; gap: 4px; font-size: 0.68rem; }
+    .price-stat-lbl { color: var(--overlay); }
+    .price-stat-val { font-family: 'Cascadia Code', 'Consolas', monospace; font-weight: 600; }
   </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     SIDEBAR
-══════════════════════════════════════ -->
+<!-- ══ LEFT SIDEBAR ═══════════════════════════════════════ -->
 <aside class="sidebar">
-  <div class="sidebar-logo">
-    <h1>&#129302; GridBot Pro</h1>
-    <p>ETH/USDT · Multi-Bot</p>
-  </div>
-
-  <nav class="sidebar-nav">
-    <a class="nav-item active" href="#">
-      <span class="nav-icon">&#128202;</span> Overview
-    </a>
-    <a class="nav-item" href="#" onclick="return false">
-      <span class="nav-icon">&#128200;</span> Analytics
-    </a>
-    <a class="nav-item" href="#" onclick="return false">
-      <span class="nav-icon">&#9889;</span> Bot Control
-    </a>
-    <a class="nav-item" href="#" onclick="return false">
-      <span class="nav-icon">&#128276;</span> Alerts
-    </a>
-    <a class="nav-item" href="./backtest.html" style="margin-top:8px;border-top:1px solid var(--surf0);padding-top:14px;">
-      <span class="nav-icon">&#128202;</span> Backtest
-    </a>
-  </nav>
-
-  <!-- Per-bot status in sidebar -->
-  <div class="sidebar-bots">
-    <div class="sidebar-bots-label">Bot Status</div>
-    <div id="sidebar-bot-2x" class="sidebar-bot-item">
-      <div class="sb-dot pending"></div>
-      <span class="sb-lev lev2">2x</span>
-      <span style="font-size:0.72rem;color:var(--overlay)">กำลังโหลด...</span>
-    </div>
-    <div id="sidebar-bot-3x" class="sidebar-bot-item">
-      <div class="sb-dot pending"></div>
-      <span class="sb-lev lev3">3x</span>
-      <span style="font-size:0.72rem;color:var(--overlay)">กำลังโหลด...</span>
-    </div>
-    <div id="sidebar-bot-5x" class="sidebar-bot-item">
-      <div class="sb-dot pending"></div>
-      <span class="sb-lev lev5">5x</span>
-      <span style="font-size:0.72rem;color:var(--overlay)">กำลังโหลด...</span>
-    </div>
-  </div>
-
-  <div class="sidebar-footer">
-    <div class="running-count" id="running-count">กำลังโหลด...</div>
-    <div class="mode-badge">&#127918; Demo Mode</div>
-  </div>
+  <div class="s-logo" title="GridBot Pro">🤖</div>
+  <a class="s-nav-btn active" href="#" title="Overview">📊</a>
+  <a class="s-nav-btn" href="#" title="Analytics">📈</a>
+  <a class="s-nav-btn" href="#" title="Bot Control">⚡</a>
+  <div class="s-sep"></div>
+  <a class="s-nav-btn" href="./backtest.html" title="Backtest">🔬</a>
 </aside>
 
-<!-- ══════════════════════════════════════
-     MAIN
-══════════════════════════════════════ -->
+<!-- ══ MAIN ════════════════════════════════════════════════ -->
 <div class="main">
 
   <!-- Top Bar -->
   <div class="topbar">
-    <div class="topbar-title">Overview · 6 Bots (Grid + Trend)</div>
-    <div class="topbar-right">
-      <span class="topbar-update">อัปเดตทุก 30 วิ &nbsp;|&nbsp; <span id="last-updated">กำลังโหลด...</span></span>
-      <button class="refresh-btn" onclick="refresh()">&#10227; Refresh</button>
+    <span class="tb-title">ETH/USDT</span>
+    <span class="tb-price" id="tb-eth-price">$—</span>
+    <span class="tb-change" id="tb-eth-change">—</span>
+    <div class="tb-divider"></div>
+
+    <div class="tb-stat">
+      <span class="tb-stat-lbl">Total P&L</span>
+      <span class="tb-stat-val" id="tb-total-pnl" style="color:var(--green)">—</span>
+    </div>
+    <div class="tb-divider"></div>
+    <div class="tb-stat">
+      <span class="tb-stat-lbl">Bots Running</span>
+      <span class="tb-stat-val" id="tb-running" style="color:var(--blue)">—</span>
+    </div>
+    <div class="tb-divider"></div>
+    <div class="tb-stat">
+      <span class="tb-stat-lbl">Portfolio</span>
+      <span class="tb-stat-val" id="tb-equity" style="color:var(--subtext)">$—</span>
+    </div>
+
+    <div class="tb-right">
+      <span class="tb-time" id="tb-updated">กำลังโหลด...</span>
+      <button class="refresh-btn" onclick="refresh()">⟳ Refresh</button>
     </div>
   </div>
 
   <!-- Scrollable Content -->
   <div class="content">
 
-    <!-- Original Grid Bot Cards -->
-    <div class="section-label">
-      <div class="sl-dot" style="background:var(--blue)"></div>
-      Grid Bots (Fixed Range)
-    </div>
-    <div class="bots-grid" id="bots-grid">
-      <!-- Dynamically rendered -->
-    </div>
+    <!-- ── Row 1: Candlestick Chart + P&L Breakdown ─────── -->
+    <div class="row-main">
 
-    <!-- Trend Following Bot Cards -->
-    <div class="section-label" style="margin-top:16px">
-      <div class="sl-dot" style="background:var(--green)"></div>
-      Trend-Following Bots (EMA 50/200)
-    </div>
-    <div class="bots-grid" id="trend-bots-grid">
-      <!-- Dynamically rendered -->
-    </div>
-
-    <!-- Chart + Trades -->
-    <div class="mid-row">
-
-      <!-- Combined PnL Chart -->
+      <!-- ETH/USDT Candlestick Chart -->
       <div class="panel">
-        <div class="panel-title">
-          <div class="panel-title-dot"></div>
-          PnL รายวัน รวมทุก Bot (USD)
+        <div class="panel-hdr">
+          <div class="panel-hdr-dot" style="background:var(--yellow)"></div>
+          ETH/USDT
+          <div class="chart-controls">
+            <button class="interval-btn active" onclick="switchInterval('15m',this)">15m</button>
+            <button class="interval-btn" onclick="switchInterval('1H',this)">1H</button>
+            <button class="interval-btn" onclick="switchInterval('4H',this)">4H</button>
+            <button class="interval-btn" onclick="switchInterval('1D',this)">1D</button>
+          </div>
         </div>
+
+        <!-- Candlestick container (div, ไม่ใช่ canvas) -->
         <div class="chart-wrap">
+          <div id="price-chart" style="width:100%;height:100%"></div>
+        </div>
+
+        <!-- OHLC stat bar ด้านล่าง chart -->
+        <div class="price-stat-bar" id="ohlc-bar">
+          <div class="price-stat">
+            <span class="price-stat-lbl">O</span>
+            <span class="price-stat-val" id="ohlc-open" style="color:var(--subtext)">—</span>
+          </div>
+          <div class="price-stat">
+            <span class="price-stat-lbl">H</span>
+            <span class="price-stat-val" id="ohlc-high" style="color:var(--green)">—</span>
+          </div>
+          <div class="price-stat">
+            <span class="price-stat-lbl">L</span>
+            <span class="price-stat-val" id="ohlc-low" style="color:var(--red)">—</span>
+          </div>
+          <div class="price-stat">
+            <span class="price-stat-lbl">C</span>
+            <span class="price-stat-val" id="ohlc-close" style="color:var(--yellow)">—</span>
+          </div>
+          <div class="price-stat" style="margin-left:auto">
+            <span class="price-stat-lbl">Range</span>
+            <span class="price-stat-val" id="price-range-lbl" style="color:var(--overlay)">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- P&L Breakdown per Bot -->
+      <div class="panel">
+        <div class="panel-hdr">
+          <div class="panel-hdr-dot" style="background:var(--green)"></div>
+          กำไร / ขาดทุน แต่ละบอท
+        </div>
+
+        <div class="pnl-breakdown">
+          <div class="pnl-group-lbl">Grid Bots (Fixed Range)</div>
+
+          <!-- Grid 2x -->
+          <div class="pnl-row" id="pnl-row-g2">
+            <div class="pnl-dot pending" style="background:var(--overlay)"></div>
+            <span class="pnl-name" style="color:var(--teal)">Grid 2x</span>
+            <span class="pnl-status-tag stop">STOP</span>
+            <div class="pnl-figures">
+              <span class="pnl-usd" style="color:var(--overlay)">—</span>
+              <div class="pnl-meta"><span>—%</span><span class="pnl-apr">APR —</span></div>
+            </div>
+          </div>
+          <!-- Grid 3x -->
+          <div class="pnl-row" id="pnl-row-g3">
+            <div class="pnl-dot pending" style="background:var(--overlay)"></div>
+            <span class="pnl-name" style="color:var(--blue)">Grid 3x</span>
+            <span class="pnl-status-tag stop">STOP</span>
+            <div class="pnl-figures">
+              <span class="pnl-usd" style="color:var(--overlay)">—</span>
+              <div class="pnl-meta"><span>—%</span><span class="pnl-apr">APR —</span></div>
+            </div>
+          </div>
+          <!-- Grid 5x -->
+          <div class="pnl-row" id="pnl-row-g5">
+            <div class="pnl-dot pending" style="background:var(--overlay)"></div>
+            <span class="pnl-name" style="color:var(--mauve)">Grid 5x</span>
+            <span class="pnl-status-tag stop">STOP</span>
+            <div class="pnl-figures">
+              <span class="pnl-usd" style="color:var(--overlay)">—</span>
+              <div class="pnl-meta"><span>—%</span><span class="pnl-apr">APR —</span></div>
+            </div>
+          </div>
+
+          <div class="pnl-group-lbl" style="margin-top:6px">Trend Bots (EMA 50/200)</div>
+
+          <!-- Trend 2x -->
+          <div class="pnl-row" id="pnl-row-t2">
+            <div class="pnl-dot pending" style="background:var(--overlay)"></div>
+            <span class="pnl-name" style="color:var(--green)">Trend 2x</span>
+            <span class="pnl-status-tag stop">STOP</span>
+            <div class="pnl-figures">
+              <span class="pnl-usd" style="color:var(--overlay)">—</span>
+              <div class="pnl-meta"><span>—%</span><span class="pnl-apr">APR —</span></div>
+            </div>
+          </div>
+          <!-- Trend 3x -->
+          <div class="pnl-row" id="pnl-row-t3">
+            <div class="pnl-dot pending" style="background:var(--overlay)"></div>
+            <span class="pnl-name" style="color:var(--yellow)">Trend 3x</span>
+            <span class="pnl-status-tag stop">STOP</span>
+            <div class="pnl-figures">
+              <span class="pnl-usd" style="color:var(--overlay)">—</span>
+              <div class="pnl-meta"><span>—%</span><span class="pnl-apr">APR —</span></div>
+            </div>
+          </div>
+          <!-- Trend 5x -->
+          <div class="pnl-row" id="pnl-row-t5">
+            <div class="pnl-dot pending" style="background:var(--overlay)"></div>
+            <span class="pnl-name" style="color:var(--peach)">Trend 5x</span>
+            <span class="pnl-status-tag stop">STOP</span>
+            <div class="pnl-figures">
+              <span class="pnl-usd" style="color:var(--overlay)">—</span>
+              <div class="pnl-meta"><span>—%</span><span class="pnl-apr">APR —</span></div>
+            </div>
+          </div>
+
+          <!-- Grand Total — ตัวใหญ่ชัดเจน -->
+          <div class="pnl-total-row">
+            <span class="pnl-total-lbl">💰 Total P&L</span>
+            <span class="pnl-total-val" id="pnl-grand-total" style="color:var(--green)">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /row-main -->
+
+    <!-- ── Row 2: Daily PnL chart + Recent Trades ──────── -->
+    <div class="row-bottom">
+
+      <!-- Daily PnL -->
+      <div class="panel">
+        <div class="panel-hdr">
+          <div class="panel-hdr-dot" style="background:var(--blue)"></div>
+          PnL รายวัน (USD)
+        </div>
+        <div class="chart-wrap-sm">
           <canvas id="pnl-chart"></canvas>
         </div>
       </div>
 
       <!-- Recent Trades -->
       <div class="panel">
-        <div class="panel-title">
-          <div class="panel-title-dot" style="background:var(--green)"></div>
-          เทรดล่าสุด (ทุก Bot)
+        <div class="panel-hdr">
+          <div class="panel-hdr-dot" style="background:var(--teal)"></div>
+          เทรดล่าสุด
+          <span id="trade-count" style="margin-left:auto;font-size:0.65rem;color:var(--overlay);font-weight:400;text-transform:none;letter-spacing:0"></span>
         </div>
-        <div style="overflow-y:auto; max-height:225px;">
+        <div class="trades-wrap">
           <table class="trades-table">
             <thead>
               <tr>
-                <th>เวลา</th>
-                <th>ทิศทาง</th>
-                <th>ราคา</th>
-                <th>กำไร</th>
+                <th>เวลา</th><th>Bot</th><th>ทิศทาง</th><th>ราคา</th><th>กำไร</th>
               </tr>
             </thead>
             <tbody id="trades-tbody">
-              <tr class="empty-row"><td colspan="4">กำลังโหลด...</td></tr>
+              <tr class="empty-row"><td colspan="5">กำลังโหลด...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-    </div>
-
-    <!-- Summary Bar -->
-    <div class="summary-bar">
-      <div class="status-item">
-        <span class="status-key">bots_running:</span>
-        <span class="status-val green" id="sb-running">—</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">total_profit:</span>
-        <span class="status-val green" id="sb-total-profit">—</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">2x profit:</span>
-        <span class="status-val teal" id="sb-p2">—</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">3x profit:</span>
-        <span class="status-val" style="color:var(--blue)" id="sb-p3">—</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">5x profit:</span>
-        <span class="status-val mauve" id="sb-p5">—</span>
-      </div>
-      <span class="status-sep">|</span>
-      <div class="status-item">
-        <span class="status-key">updated:</span>
-        <span class="status-val teal" id="sb-updated">—</span>
-      </div>
-    </div>
+    </div><!-- /row-bottom -->
 
   </div><!-- /content -->
 </div><!-- /main -->
 
+<!-- ══ RIGHT: BOT STATUS PANEL ═══════════════════════════ -->
+<aside class="bot-status-panel">
+  <div class="bsp-title">🟢 Bot Status</div>
+
+  <div class="bsp-group">Grid Bots</div>
+  <div class="bot-strip stopped" id="bstrip-g2">
+    <div class="bs-indicator pending"></div>
+    <div class="bs-info"><span class="bs-name lev2">Grid 2x</span><span class="bs-state">กำลังโหลด...</span></div>
+  </div>
+  <div class="bot-strip stopped" id="bstrip-g3">
+    <div class="bs-indicator pending"></div>
+    <div class="bs-info"><span class="bs-name lev3">Grid 3x</span><span class="bs-state">กำลังโหลด...</span></div>
+  </div>
+  <div class="bot-strip stopped" id="bstrip-g5">
+    <div class="bs-indicator pending"></div>
+    <div class="bs-info"><span class="bs-name lev5">Grid 5x</span><span class="bs-state">กำลังโหลด...</span></div>
+  </div>
+
+  <div class="bsp-group" style="margin-top:6px">Trend Bots</div>
+  <div class="bot-strip stopped" id="bstrip-t2">
+    <div class="bs-indicator pending"></div>
+    <div class="bs-info"><span class="bs-name tlev2">Trend 2x</span><span class="bs-state">กำลังโหลด...</span></div>
+  </div>
+  <div class="bot-strip stopped" id="bstrip-t3">
+    <div class="bs-indicator pending"></div>
+    <div class="bs-info"><span class="bs-name tlev3">Trend 3x</span><span class="bs-state">กำลังโหลด...</span></div>
+  </div>
+  <div class="bot-strip stopped" id="bstrip-t5">
+    <div class="bs-indicator pending"></div>
+    <div class="bs-info"><span class="bs-name tlev5">Trend 5x</span><span class="bs-state">กำลังโหลด...</span></div>
+  </div>
+
+  <div class="bsp-running-summary" id="bsp-run-count">0/6 กำลังทำงาน</div>
+
+  <!-- Total P&L ขวา — hero number -->
+  <div class="bsp-total">
+    <div class="bsp-total-lbl">Total P&L</div>
+    <div class="bsp-total-num" id="bsp-total-pnl" style="color:var(--green)">—</div>
+  </div>
+
+  <div class="bsp-mode" id="bsp-mode-badge">🎮 Demo Mode</div>
+</aside>
+
 <script>
-// ============================================================
+// ═══════════════════════════════════════════════
 //  CONFIG
-// ============================================================
+// ═══════════════════════════════════════════════
 const SUPABASE_URL = "https://tgrmivymsesqpdrsludq.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG";
-const CAPITAL      = 1600;  // ทุนต่อ bot (USD)
-
-// Bot config: leverage → color class & label
-const BOT_CONFIG = [
-  { lev: 2, cls: "lev2", label: "2x Leverage", color: "#89dceb" },
-  { lev: 3, cls: "lev3", label: "3x Leverage", color: "#89b4fa" },
-  { lev: 5, cls: "lev5", label: "5x Leverage", color: "#cba6f7" },
-];
-
-// Trend Bot config
-const TREND_BOT_CONFIG = [
-  { lev: 2, cls: "tlev2", label: "Trend 2x", color: "#a6e3a1" },
-  { lev: 3, cls: "tlev3", label: "Trend 3x", color: "#f9e2af" },
-  { lev: 5, cls: "tlev5", label: "Trend 5x", color: "#fab387" },
-];
-// ============================================================
+const CAPITAL      = 1600; // USD ต่อ bot
 
 const API_HEADERS = {
   "apikey":        SUPABASE_KEY,
@@ -609,405 +558,467 @@ const API_HEADERS = {
   "Content-Type":  "application/json",
 };
 
-async function query(table, params = "") {
+async function sbQuery(table, params = "") {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: API_HEADERS });
   if (!res.ok) throw new Error(`${table}: ${res.status}`);
   return res.json();
 }
 
-// ── Catppuccin colors ──────────────────────────────────────
+// ── Color palette ──────────────────────────────
 const C = {
-  blue:   "#89b4fa",
-  green:  "#a6e3a1",
-  red:    "#f38ba8",
-  yellow: "#f9e2af",
-  mauve:  "#cba6f7",
-  teal:   "#89dceb",
-  surf0:  "#313244",
-  surf1:  "#45475a",
-  overlay:"#6c7086",
-  text:   "#cdd6f4",
+  yellow:"#f9e2af", green:"#a6e3a1",  red:"#f38ba8",
+  blue:"#89b4fa",   mauve:"#cba6f7",  teal:"#89dceb",
+  peach:"#fab387",  surf0:"#313244",  surf1:"#45475a",
+  overlay:"#6c7086",text:"#cdd6f4",   mantle:"#181825",
 };
 
-// ── PnL Chart (combined all bots) ─────────────────────────
+// ═══════════════════════════════════════════════
+//  CANDLESTICK CHART (TradingView Lightweight)
+// ═══════════════════════════════════════════════
+let lwChart = null;
+let candleSeries = null;
+let currentInterval = "15m";
+
+function initCandleChart() {
+  const container = document.getElementById("price-chart");
+  if (!container || typeof LightweightCharts === "undefined") return;
+
+  // สี TradingView มาตรฐาน
+  const TV_BG      = "#131722";   // TradingView dark background
+  const TV_GRID    = "rgba(42,46,57,0.8)";
+  const TV_TEXT    = "#d1d4dc";
+  const TV_BORDER  = "#2a2e39";
+  const TV_GREEN   = "#26a69a";   // TradingView standard green
+  const TV_RED     = "#ef5350";   // TradingView standard red
+  const TV_CROSS   = "#758696";
+
+  lwChart = LightweightCharts.createChart(container, {
+    width:  container.clientWidth,
+    height: container.clientHeight,
+    layout: {
+      background: { color: TV_BG },
+      textColor:  TV_TEXT,
+      fontSize:   12,
+      fontFamily: "'Segoe UI', system-ui, sans-serif",
+    },
+    grid: {
+      vertLines: { color: TV_GRID },
+      horzLines: { color: TV_GRID },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: {
+        color: TV_CROSS, style: 0, width: 1,
+        labelBackgroundColor: "#2a2e39",
+        labelVisible: true,
+      },
+      horzLine: {
+        color: TV_CROSS, style: 0, width: 1,
+        labelBackgroundColor: "#2a2e39",
+        labelVisible: true,
+      },
+    },
+    rightPriceScale: {
+      borderColor:  TV_BORDER,
+      textColor:    TV_TEXT,
+      scaleMargins: { top: 0.06, bottom: 0.22 },  // เว้นล่างสำหรับ Volume
+      borderVisible: true,
+    },
+    timeScale: {
+      borderColor:    TV_BORDER,
+      timeVisible:    true,
+      secondsVisible: false,
+      fixLeftEdge:    false,
+      rightOffset:    8,
+      barSpacing:     7,
+      minBarSpacing:  2,
+      borderVisible:  true,
+    },
+    handleScroll: { mouseWheel: true, pressedMouseMove: true },
+    handleScale:  { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+  });
+
+  // ── Candlestick series (สี TradingView มาตรฐาน)
+  candleSeries = lwChart.addCandlestickSeries({
+    upColor:         TV_GREEN,
+    downColor:       TV_RED,
+    borderUpColor:   TV_GREEN,
+    borderDownColor: TV_RED,
+    wickUpColor:     TV_GREEN,
+    wickDownColor:   TV_RED,
+    borderVisible:   true,
+    wickVisible:     true,
+  });
+
+  // ── Volume histogram series
+  const volSeries = lwChart.addHistogramSeries({
+    priceFormat:   { type: "volume" },
+    priceScaleId:  "volume",
+    scaleMargins:  { top: 0.82, bottom: 0 },
+  });
+  volSeries.priceScale().applyOptions({
+    scaleMargins: { top: 0.82, bottom: 0 },
+  });
+  lwChart._volSeries = volSeries;
+
+  // ── เส้น Grid Range (Upper / Lower)
+  const upperLine = lwChart.addLineSeries({
+    color: "rgba(249,226,175,0.55)", lineWidth: 1, lineStyle: 2,
+    priceLineVisible: false, lastValueVisible: false,
+    title: "Upper $2300",
+  });
+  const lowerLine = lwChart.addLineSeries({
+    color: "rgba(243,139,168,0.55)", lineWidth: 1, lineStyle: 2,
+    priceLineVisible: false, lastValueVisible: false,
+    title: "Lower $1800",
+  });
+
+  // ── Crosshair hover → อัปเดต OHLC bar
+  lwChart.subscribeCrosshairMove(param => {
+    if (!param || !param.time) return;
+    const bar = param.seriesData.get(candleSeries);
+    if (!bar) return;
+    const fmt = v => v ? "$" + (+v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : "—";
+    const col = bar.close >= bar.open ? TV_GREEN : TV_RED;
+    document.getElementById("ohlc-open").textContent  = fmt(bar.open);
+    document.getElementById("ohlc-high").textContent  = fmt(bar.high);
+    document.getElementById("ohlc-low").textContent   = fmt(bar.low);
+    document.getElementById("ohlc-close").textContent = fmt(bar.close);
+    document.getElementById("ohlc-close").style.color = col;
+  });
+
+  // ── Responsive resize
+  const ro = new ResizeObserver(() => {
+    if (lwChart && container) {
+      lwChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+    }
+  });
+  ro.observe(container);
+
+  // Store refs
+  lwChart._upperLine = upperLine;
+  lwChart._lowerLine = lowerLine;
+  lwChart._TV_GREEN  = TV_GREEN;
+  lwChart._TV_RED    = TV_RED;
+}
+
+async function fetchCandles(interval = "15m") {
+  try {
+    // OKX Public API — ไม่ต้อง auth
+    const limit = interval === "15m" ? 150 : interval === "1H" ? 120 : interval === "4H" ? 90 : 60;
+    const r = await fetch(
+      `https://www.okx.com/api/v5/market/candles?instId=ETH-USDT-SWAP&bar=${interval}&limit=${limit}`
+    );
+    if (!r.ok) throw new Error("OKX " + r.status);
+    const d = await r.json();
+    if (d.code !== "0") throw new Error("OKX code " + d.code);
+
+    // OKX คืนใหม่ก่อน → reverse
+    const raw = (d.data || []).reverse();
+    const candles = raw.map(c => ({
+      time:  Math.floor(+c[0] / 1000),
+      open:  +c[1],
+      high:  +c[2],
+      low:   +c[3],
+      close: +c[4],
+    }));
+    // Volume data (index 5 = volume)
+    const TV_GREEN = lwChart._TV_GREEN || "#26a69a";
+    const TV_RED   = lwChart._TV_RED   || "#ef5350";
+    const volumes = raw.map(c => ({
+      time:  Math.floor(+c[0] / 1000),
+      value: +c[5] || 0,
+      color: +c[4] >= +c[1]
+        ? "rgba(38,166,154,0.4)"   // bullish volume (green transparent)
+        : "rgba(239,83,80,0.4)",   // bearish volume (red transparent)
+    }));
+
+    if (!candles.length) throw new Error("no data");
+
+    // ตั้งค่า Grid range lines ตลอดช่วงเวลา
+    const t0 = candles[0].time;
+    const t1 = candles[candles.length-1].time;
+    if (lwChart._upperLine) {
+      lwChart._upperLine.setData([{time:t0,value:2300},{time:t1,value:2300}]);
+    }
+    if (lwChart._lowerLine) {
+      lwChart._lowerLine.setData([{time:t0,value:1800},{time:t1,value:1800}]);
+    }
+
+    candleSeries.setData(candles);
+    if (lwChart._volSeries) lwChart._volSeries.setData(volumes);
+    lwChart.timeScale().fitContent();
+
+    // OHLC bar — แท่งล่าสุด
+    const last = candles[candles.length-1];
+    const fmt = v => "$" + (+v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    const col = last.close >= last.open ? C.green : C.red;
+    document.getElementById("ohlc-open").textContent  = fmt(last.open);
+    document.getElementById("ohlc-high").textContent  = fmt(last.high);
+    document.getElementById("ohlc-low").textContent   = fmt(last.low);
+    document.getElementById("ohlc-close").textContent = fmt(last.close);
+    document.getElementById("ohlc-close").style.color = col;
+
+    // Range
+    const allLow  = Math.min(...candles.map(c=>c.low));
+    const allHigh = Math.max(...candles.map(c=>c.high));
+    document.getElementById("price-range-lbl").textContent =
+      `$${Math.round(allLow).toLocaleString()} – $${Math.round(allHigh).toLocaleString()}`;
+
+    // Topbar price
+    document.getElementById("tb-eth-price").textContent = fmt(last.close);
+    const firstClose = candles[0].close;
+    const chg = ((last.close - firstClose) / firstClose) * 100;
+    const chgEl = document.getElementById("tb-eth-change");
+    chgEl.textContent = `${chg >= 0 ? "+" : ""}${chg.toFixed(2)}% (${interval})`;
+    chgEl.className = `tb-change ${chg >= 0 ? "up" : "down"}`;
+
+  } catch(e) {
+    console.warn("fetchCandles:", e.message);
+    // fallback: CoinGecko line (แสดงเป็น line ถ้า OKX fail)
+    try {
+      const r2 = await fetch(
+        "https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=1&interval=hourly"
+      );
+      const d2 = await r2.json();
+      const prices = d2.prices || [];
+      const candles = prices.map(p => ({
+        time: Math.floor(p[0] / 1000),
+        open: +p[1], high: +p[1]*1.001, low: +p[1]*0.999, close: +p[1],
+      }));
+      if (candles.length && candleSeries) {
+        candleSeries.setData(candles);
+        lwChart.timeScale().fitContent();
+      }
+    } catch(_) {}
+  }
+}
+
+function switchInterval(interval, btn) {
+  currentInterval = interval;
+  document.querySelectorAll(".interval-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  fetchCandles(interval);
+}
+
+// ═══════════════════════════════════════════════
+//  DAILY PnL CHART (Chart.js bar)
+// ═══════════════════════════════════════════════
 let pnlChart;
-
-function initChart() {
-  const ctx = document.getElementById("pnl-chart").getContext("2d");
-  pnlChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "2x Bot",
-          data: [],
-          backgroundColor: "rgba(137,220,235,0.5)",
-          borderColor: C.teal,
-          borderWidth: 1,
-          borderRadius: 4,
-        },
-        {
-          label: "3x Bot",
-          data: [],
-          backgroundColor: "rgba(137,180,250,0.5)",
-          borderColor: C.blue,
-          borderWidth: 1,
-          borderRadius: 4,
-        },
-        {
-          label: "5x Bot",
-          data: [],
-          backgroundColor: "rgba(203,166,247,0.5)",
-          borderColor: C.mauve,
-          borderWidth: 1,
-          borderRadius: 4,
-        },
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          labels: { color: C.text, font: { size: 11 }, boxWidth: 12 }
-        },
-        tooltip: {
-          backgroundColor: "#313244",
-          titleColor: "#a6adc8",
-          bodyColor: "#cdd6f4",
-          borderColor: "#45475a",
-          borderWidth: 1,
-          callbacks: {
-            label: (ctx) => ` $${ctx.raw.toFixed(4)}`
+function initPnlChart() {
+  pnlChart = new Chart(
+    document.getElementById("pnl-chart").getContext("2d"),
+    {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [
+          { label:"Grid 2x", data:[], backgroundColor:"rgba(137,220,235,0.55)", borderColor:C.teal,  borderWidth:1, borderRadius:3 },
+          { label:"Grid 3x", data:[], backgroundColor:"rgba(137,180,250,0.55)", borderColor:C.blue,  borderWidth:1, borderRadius:3 },
+          { label:"Grid 5x", data:[], backgroundColor:"rgba(203,166,247,0.55)", borderColor:C.mauve, borderWidth:1, borderRadius:3 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, labels: { color:C.text, font:{size:10}, boxWidth:10, padding:8 } },
+          tooltip: {
+            backgroundColor:C.surf0, titleColor:C.overlay, bodyColor:C.text,
+            borderColor:C.surf1, borderWidth:1,
+            callbacks: { label: ctx => ` ${ctx.dataset.label}: $${(+ctx.raw).toFixed(4)}` }
           }
-        }
-      },
-      scales: {
-        x: {
-          stacked: false,
-          ticks: { color: C.overlay, font: { size: 11 } },
-          grid:  { color: C.surf0 },
         },
-        y: {
-          ticks: { color: C.overlay, font: { size: 11 } },
-          grid:  { color: C.surf0 },
+        scales: {
+          x: { ticks:{color:C.overlay,font:{size:10}}, grid:{color:C.surf0} },
+          y: { ticks:{color:C.overlay,font:{size:10},callback:v=>`$${v}`}, grid:{color:C.surf0} },
         },
       },
-    },
-  });
-}
-
-// ── Render bot cards ──────────────────────────────────────
-function renderBotCards(botRows) {
-  const byLev = {};
-  botRows.forEach(r => { byLev[r.leverage] = r; });
-
-  const html = BOT_CONFIG.map(cfg => {
-    const s = byLev[cfg.lev];
-    if (!s) {
-      return `<div class="bot-card bot-offline">
-        <div class="bot-header">
-          <span class="bot-title">ETH/USDT</span>
-          <span class="lev-badge offline">${cfg.label}</span>
-        </div>
-        <div class="bot-state" style="color:var(--overlay)">⚪ ยังไม่เริ่ม</div>
-        <div class="bot-profit" style="color:var(--overlay)">—</div>
-        <div class="bot-pct" style="color:var(--overlay)">รอเปิดใช้งาน</div>
-        <div class="bot-rows">
-          <div class="bot-row"><span class="bot-key">APR</span><span class="bot-val">—</span></div>
-          <div class="bot-row"><span class="bot-key">algo_state</span><span class="bot-val">—</span></div>
-          <div class="bot-row"><span class="bot-key">อัปเดต</span><span class="bot-val">—</span></div>
-        </div>
-      </div>`;
     }
-
-    const isRunning = s.is_running === true;
-    const profit    = s.profit_loss != null ? +s.profit_loss : null;
-    const apr       = s.total_annualized_rate != null ? +s.total_annualized_rate : null;
-    const updAt      = s.updated_at
-      ? new Date(s.updated_at).toLocaleTimeString("th-TH", { hour12: false })
-      : "—";
-
-    const stateStr   = isRunning ? "🟢 RUNNING" : "🔴 STOPPED =";
-    const stateColor = isRunning ? "var(--green)" : "var(--red)";
-    const profitNum  = profit != null ? profit : 0;
-    const profitColor = profitNum >= 0 ? "var(--green)" : "var(--red)";
-    const profitStr  = profit != null ? `$${profit.toFixed(4)}` : "—";
-    const pctStr     = profit != null
-      ? `${((profit / CAPITAL) * 100).toFixed(4)}% ของทุน · APR ${apr != null ? apr.toFixed(2) + "%" : "—"}`
-      : "—";
-    const aprStr     = apr != null ? `${apr.toFixed(2)}%` : "—";
-
-    return `<div class="bot-card ${cfg.cls}">
-      <div class="bot-header">
-        <span class="bot-title">ETH/USDT</span>
-        <span class="lev-badge ${cfg.cls}">${cfg.label}</span>
-      </div>
-      <div class="bot-state" style="color:${stateColor}">${stateStr}</div>
-      <div class="bot-profit" style="color:${profitColor}">${profitStr}</div>
-      <div class="bot-pct" style="color:${profitColor}">${pctStr}</div>
-      <div class="bot-rows">
-        <div class="bot-row">
-          <span class="bot-key">APR</span>
-          <span class="bot-val" style="color:var(--yellow)">${aprStr}</span>
-        </div>
-        <div class="bot-row">
-          <span class="bot-key">algo_state</span>
-          <span class="bot-val">${s.algo_state ?? "—"}</span>
-        </div>
-        <div class="bot-row">
-          <span class="bot-key">grid</span>
-          <span class="bot-val">${s.min_price ? `$${(+s.min_price).toLocaleString()}–$${(+s.max_price).toLocaleString()} / ${s.grid_num ?? "—"} levels` : "—"}</span>
-        </div>
-        <div class="bot-row">
-          <span class="bot-key">อัปเดต</span>
-          <span class="bot-val" style="color:var(--overlay)">${updAt}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join("");
-
-  document.getElementById("bots-grid").innerHTML = html;
+  );
 }
 
-// ── Render Trend Bot cards ────────────────────────────────
-function renderTrendBotCards(botRows) {
-  const byLev = {};
-  botRows.forEach(r => { byLev[r.leverage] = r; });
-
-  const html = TREND_BOT_CONFIG.map(cfg => {
-    const s = byLev[cfg.lev];
-    if (!s) {
-      return `<div class="bot-card bot-offline">
-        <div class="bot-header">
-          <span class="bot-title">ETH/USDT Trend</span>
-          <span class="lev-badge offline">${cfg.label}</span>
-        </div>
-        <div class="bot-state" style="color:var(--overlay)">&#9898; ยังไม่เริ่ม</div>
-        <div class="bot-profit" style="color:var(--overlay)">—</div>
-        <div class="bot-pct" style="color:var(--overlay)">รอเปิดใช้งาน</div>
-        <div class="bot-rows">
-          <div class="bot-row"><span class="bot-key">Trend</span><span class="bot-val trend-unk">—</span></div>
-          <div class="bot-row"><span class="bot-key">APR</span><span class="bot-val">—</span></div>
-          <div class="bot-row"><span class="bot-key">algo_state</span><span class="bot-val">—</span></div>
-          <div class="bot-row"><span class="bot-key">อัปเดต</span><span class="bot-val">—</span></div>
-        </div>
-      </div>`;
-    }
-
-    const isRunning  = s.is_running === true;
-    const profit     = s.profit_loss != null ? +s.profit_loss : null;
-    const apr        = s.total_annualized_rate != null ? +s.total_annualized_rate : null;
-    const updAt      = s.updated_at
-      ? new Date(s.updated_at).toLocaleTimeString("th-TH", { hour12: false })
-      : "—";
-    // algo_tag stores trend direction (UP / DOWN / UNKNOWN)
-    const trendVal   = s.algo_tag ?? s.algo_state ?? "UNKNOWN";
-    const trendCls   = trendVal === "UP" ? "trend-up" : trendVal === "DOWN" ? "trend-down" : "trend-unk";
-    const trendEmoji = trendVal === "UP" ? "&#128994;" : trendVal === "DOWN" ? "&#128308;" : "&#9898;";
-    const trendLabel = trendVal === "UP" ? "UP &#8679;" : trendVal === "DOWN" ? "DOWN &#8681;" : trendVal;
-
-    const stateStr   = isRunning ? "&#128994; RUNNING" : "&#128308; STOPPED";
-    const stateColor = isRunning ? "var(--green)" : "var(--red)";
-    const profitNum  = profit != null ? profit : 0;
-    const profitColor = profitNum >= 0 ? "var(--green)" : "var(--red)";
-    const profitStr  = profit != null ? `$${profit.toFixed(4)}` : "—";
-    const pctStr     = profit != null
-      ? `${((profit / CAPITAL) * 100).toFixed(4)}% &#183; APR ${apr != null ? apr.toFixed(2) + "%" : "—"}`
-      : "—";
-
-    // Grid range
-    const rangeStr = s.min_price
-      ? `$${(+s.min_price).toLocaleString()}–$${(+s.max_price).toLocaleString()} / ${s.grid_num ?? "—"} ch.`
-      : "—";
-
-    return `<div class="bot-card ${cfg.cls}">
-      <div class="bot-header">
-        <span class="bot-title">ETH/USDT Trend</span>
-        <span class="lev-badge ${cfg.cls}">${cfg.label}</span>
-      </div>
-      <div class="bot-state" style="color:${stateColor}">${stateStr}</div>
-      <div class="bot-profit" style="color:${profitColor}">${profitStr}</div>
-      <div class="bot-pct" style="color:${profitColor}">${pctStr}</div>
-      <div class="bot-rows">
-        <div class="bot-row">
-          <span class="bot-key">Trend</span>
-          <span class="bot-val ${trendCls}">${trendEmoji} ${trendLabel}</span>
-        </div>
-        <div class="bot-row">
-          <span class="bot-key">APR</span>
-          <span class="bot-val" style="color:var(--yellow)">${apr != null ? apr.toFixed(2) + "%" : "—"}</span>
-        </div>
-        <div class="bot-row">
-          <span class="bot-key">grid range</span>
-          <span class="bot-val">${rangeStr}</span>
-        </div>
-        <div class="bot-row">
-          <span class="bot-key">algo_state</span>
-          <span class="bot-val">${s.algo_state ?? "—"}</span>
-        </div>
-        <div class="bot-row">
-          <span class="bot-key">อัปเดต</span>
-          <span class="bot-val" style="color:var(--overlay)">${updAt}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join("");
-
-  document.getElementById("trend-bots-grid").innerHTML = html;
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function fmtProfit(val, decimals = 2) {
+  if (val == null || isNaN(+val)) return null;
+  const n = +val;
+  const sign = n >= 0 ? "+" : "";
+  return `${sign}$${Math.abs(n).toFixed(decimals)}`;
+}
+function pnlColor(val) {
+  if (val == null) return C.overlay;
+  return +val >= 0 ? C.green : C.red;
 }
 
-// ── Update sidebar per-bot items ───────────────────────────
-function updateSidebar(botRows) {
-  const byLev = {};
-  botRows.forEach(r => { byLev[r.leverage] = r; });
+// ── Update P&L row ────────────────────────────
+function updatePnlRow(rowId, isRunning, profit, apr) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  const dot   = row.querySelector(".pnl-dot");
+  const stTag = row.querySelector(".pnl-status-tag");
+  const usdEl = row.querySelector(".pnl-usd");
+  const meta  = row.querySelector(".pnl-meta");
+  const aprEl = row.querySelector(".pnl-apr");
 
-  [2, 3, 5].forEach(lev => {
-    const el  = document.getElementById(`sidebar-bot-${lev}x`);
-    if (!el) return;
-    const s   = byLev[lev];
-    const dotCls = !s ? "pending" : s.is_running === true ? "running" : "stopped";
-    const profit = s?.profit_loss != null ? +s.profit_loss : null;
-    const pStr   = profit != null
-      ? `<span style="color:${profit >= 0 ? "var(--green)" : "var(--red)"};margin-left:auto;font-size:0.7rem">${profit >= 0 ? "+" : ""}$${profit.toFixed(2)}</span>`
-      : `<span style="color:var(--overlay);margin-left:auto;font-size:0.7rem">—</span>`;
-    const state = !s ? "ยังไม่เริ่ม" : s.is_running === true ? "กำลังทำงาน" : "หยุด";
-    const stateColor = !s ? "var(--overlay)" : s.is_running === true ? "var(--subtext)" : "var(--overlay)";
-    el.innerHTML = `
-      <div class="sb-dot ${dotCls}"></div>
-      <span class="sb-lev lev${lev}">${lev}x</span>
-      <span style="font-size:0.72rem;color:${stateColor}">${state}</span>
-      ${pStr}
-    `;
-  });
+  // Dot & border
+  dot.className = "pnl-dot " + (isRunning ? "running" : "stopped");
+  dot.style.background = isRunning ? C.green : C.red;
 
-  const runCount = botRows.filter(r => r.is_running === true).length;
-  document.getElementById("running-count").textContent =
-    `${runCount}/3 Grid Bot กำลังทำงาน`;
+  const profitNum = profit != null ? +profit : null;
+  if (profitNum != null && profitNum > 0)      row.classList.add("profit-positive"), row.classList.remove("profit-negative");
+  else if (profitNum != null && profitNum < 0) row.classList.add("profit-negative"), row.classList.remove("profit-positive");
+  else row.classList.remove("profit-positive","profit-negative");
+
+  // Status tag
+  stTag.className = `pnl-status-tag ${isRunning ? "run" : "stop"}`;
+  stTag.textContent = isRunning ? "RUN" : "STOP";
+
+  // Profit USD — ตัวใหญ่ชัดเจน
+  const pStr = fmtProfit(profit, 2);
+  usdEl.textContent  = pStr ?? "—";
+  usdEl.style.color  = pnlColor(profit);
+  usdEl.style.fontSize = profitNum != null ? "1.35rem" : "1.15rem";
+
+  // Meta: % + APR
+  if (meta) {
+    const pct = profitNum != null ? ((profitNum / CAPITAL) * 100).toFixed(2) + "%" : "—%";
+    const aprStr = apr != null ? (+apr).toFixed(1) + "%" : "—";
+    meta.innerHTML = `<span>${pct}</span><span class="pnl-apr">APR ${aprStr}</span>`;
+  }
 }
 
-// ── Main Refresh ──────────────────────────────────────────
+// ── Update bot strip ──────────────────────────
+function updateBotStrip(stripId, isRunning) {
+  const strip = document.getElementById(stripId);
+  if (!strip) return;
+  const ind = strip.querySelector(".bs-indicator");
+  const st  = strip.querySelector(".bs-state");
+  strip.className = `bot-strip ${isRunning ? "running" : "stopped"}`;
+  ind.className   = `bs-indicator ${isRunning ? "running" : "stopped"}`;
+  st.textContent  = isRunning ? "กำลังทำงาน" : "หยุดแล้ว";
+  st.className    = `bs-state ${isRunning ? "run-txt" : "stop-txt"}`;
+}
+
+// ═══════════════════════════════════════════════
+//  MAIN REFRESH
+// ═══════════════════════════════════════════════
 async function refresh() {
   try {
-    // 1. Original bot_status rows (no bot_tag = original grid bots)
-    const botRows = await query("bot_status", "bot_tag=is.null&order=leverage.asc");
+    const [gridRows, trendRows] = await Promise.all([
+      sbQuery("bot_status", "bot_tag=is.null&order=leverage.asc"),
+      sbQuery("bot_status", "bot_tag=eq.trend_v1&order=leverage.asc"),
+    ]);
 
-    // 2. Trend bot rows (bot_tag = trend_v1)
-    const trendRows = await query("bot_status", "bot_tag=eq.trend_v1&order=leverage.asc");
+    const byGridLev  = Object.fromEntries(gridRows.map(r  => [r.leverage, r]));
+    const byTrendLev = Object.fromEntries(trendRows.map(r => [r.leverage, r]));
 
-    renderBotCards(botRows);
-    renderTrendBotCards(trendRows);
-    updateSidebar(botRows);
-
-    // Merge all rows (must declare BEFORE use)
-    const allRows = [...botRows, ...trendRows];
-
-    // Update last-updated time (consider all bots including trend)
-    const latest = allRows.reduce((acc, r) =>
-      !acc || new Date(r.updated_at) > new Date(acc) ? r.updated_at : acc, null);
-    const latestDate = latest ? new Date(latest) : null;
-    document.getElementById("last-updated").textContent =
-      latestDate ? latestDate.toLocaleString("th-TH") : "—";
-
-    // Summary bar
-    const byLev = {};
-    botRows.forEach(r => { byLev[r.leverage] = r; });
-
-    const runCount = allRows.filter(r => r.is_running === true).length;
-    document.getElementById("sb-running").textContent = `${runCount}/6`;
-
-    const totalProfit = allRows.reduce((sum, r) =>
-      sum + (r.profit_loss != null ? +r.profit_loss : 0), 0);
-    document.getElementById("sb-total-profit").textContent =
-      `${totalProfit >= 0 ? "+" : ""}$${totalProfit.toFixed(4)}`;
-
+    // ── P&L breakdown ─────────────────────────
     [2, 3, 5].forEach(lev => {
-      const s = byLev[lev];
-      const el = document.getElementById(`sb-p${lev}`);
-      if (el) el.textContent = s?.profit_loss != null
-        ? `${+s.profit_loss >= 0 ? "+" : ""}$${(+s.profit_loss).toFixed(4)}`
-        : "—";
+      const sg = byGridLev[lev];
+      const st = byTrendLev[lev];
+      // ✅ อ่าน total_profit ก่อน fallback profit_loss
+      updatePnlRow(`pnl-row-g${lev}`, sg?.is_running === true,
+        sg?.total_profit ?? sg?.profit_loss, sg?.total_annualized_rate);
+      updatePnlRow(`pnl-row-t${lev}`, st?.is_running === true,
+        st?.total_profit ?? st?.profit_loss, st?.total_annualized_rate);
     });
 
-    document.getElementById("sb-updated").textContent =
-      latestDate ? latestDate.toISOString().replace("T", " ").slice(0, 19) + " UTC" : "—";
+    // ── Bot strips ───────────────────────────
+    [2, 3, 5].forEach(lev => {
+      updateBotStrip(`bstrip-g${lev}`, byGridLev[lev]?.is_running === true);
+      updateBotStrip(`bstrip-t${lev}`, byTrendLev[lev]?.is_running === true);
+    });
 
-    // 2. Daily PnL by bot (stacked chart)
+    // ── Totals ───────────────────────────────
+    const allRows    = [...gridRows, ...trendRows];
+    const totalProfit = allRows.reduce((s,r) => s + (+(r.total_profit ?? r.profit_loss ?? 0)), 0);
+    const runCount   = allRows.filter(r => r.is_running === true).length;
+    const totalStr   = fmtProfit(totalProfit, 2) ?? "—";
+    const totalColor = totalProfit >= 0 ? C.green : C.red;
+
+    // Grand Total — ใหญ่ที่สุด
+    const gtEl = document.getElementById("pnl-grand-total");
+    gtEl.textContent  = totalStr;
+    gtEl.style.color  = totalColor;
+    gtEl.style.fontSize = "2rem"; // always big
+
+    document.getElementById("tb-total-pnl").textContent   = totalStr;
+    document.getElementById("tb-total-pnl").style.color   = totalColor;
+    document.getElementById("tb-running").textContent     = `${runCount}/6`;
+    document.getElementById("bsp-total-pnl").textContent  = totalStr;
+    document.getElementById("bsp-total-pnl").style.color  = totalColor;
+    document.getElementById("bsp-run-count").textContent  = `${runCount}/6 กำลังทำงาน`;
+
+    const equity = CAPITAL * 6 + totalProfit;
+    document.getElementById("tb-equity").textContent = `$${equity.toFixed(2)}`;
+
+    const latest = allRows.reduce((acc,r) =>
+      !acc || new Date(r.updated_at) > new Date(acc) ? r.updated_at : acc, null);
+    document.getElementById("tb-updated").textContent =
+      "อัปเดต: " + (latest ? new Date(latest).toLocaleString("th-TH",{hour12:false}) : "—");
+
+    // ── Daily PnL chart ──────────────────────
     try {
-      const pnlRows = await query("pnl_daily", "order=date.asc&limit=42");
-
-      // Group by date → { "04-01": { 2: pnl, 3: pnl, 5: pnl } }
-      const dates = [...new Set(pnlRows.map(r => r.date))].slice(-14);
-      const dataByLev = { 2: {}, 3: {}, 5: {} };
-
+      const pnlRows = await sbQuery("pnl_daily", "order=date.asc&limit=42");
+      const dates   = [...new Set(pnlRows.map(r => r.date))].slice(-14);
+      const byLev   = { 2:{}, 3:{}, 5:{} };
       pnlRows.forEach(r => {
-        const lev = r.leverage ?? 3; // fallback for old data
-        if (!dataByLev[lev]) dataByLev[lev] = {};
-        dataByLev[lev][r.date] = +(+rr.pnl).toFixed(4);
+        const lev = r.leverage ?? 3;
+        if (byLev[lev]) byLev[lev][r.date] = +(+r.pnl).toFixed(4);
       });
-
-      // If pnl_daily has no leverage column, put everything in 3x
-      const hasLevCol = pnlRows.some(r => r.leverage != null);
-      if (!hasLevCol) {
-        pnlRows.forEach(r => {
-          dataByLev[3][r.date] = +(+rr.pnl).toFixed(4);
-        });
-      }
-
-      pnlChart.data.labels = dates.map(d => d.slice(5));
-      pnlChart.data.datasets[0].data = dates.map(d => dataByLev[2][d] ?? 0);
-      pnlChart.data.datasets[1].data = dates.map(d => dataByLev[3][d] ?? 0);
-      pnlChart.data.datasets[2].data = dates.map(d => dataByLev[5][d] ?? 0);
+      pnlChart.data.labels           = dates.map(d => d.slice(5));
+      pnlChart.data.datasets[0].data = dates.map(d => byLev[2][d] ?? 0);
+      pnlChart.data.datasets[1].data = dates.map(d => byLev[3][d] ?? 0);
+      pnlChart.data.datasets[2].data = dates.map(d => byLev[5][d] ?? 0);
       pnlChart.update();
-    } catch (e) {
-      console.warn("pnl_daily:", e.message);
-    }
+    } catch(e) { console.warn("pnl_daily:", e.message); }
 
-    // 3. Recent Trades (all bots)
+    // ── Recent Trades ────────────────────────
     try {
-      const trades = await query("trades", "order=created_at.desc&limit=15");
+      const trades = await sbQuery("trades", "order=created_at.desc&limit=20");
       const tbody  = document.getElementById("trades-tbody");
+      document.getElementById("trade-count").textContent = trades.length ? `${trades.length} รายการ` : "";
       if (!trades.length) {
-        tbody.innerHTML = `<tr class="empty-row"><td colspan="4">ยังไม่มีเทรด</td></tr>`;
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="5">ยังไม่มีเทรด</td></tr>`;
       } else {
         tbody.innerHTML = trades.map(t => {
-          const time    = new Date(t.created_at)
-                            .toLocaleTimeString("th-TH", { hour12: false });
-          const isBuy   = t.side === "buy";
-          const pf      = t.net_profit != null ? +t.net_profit : null;
-          const pfStr   = pf != null
-            ? `<span style="color:${pf >= 0 ? "var(--green)" : "var(--red)"}">$${pf.toFixed(4)}</span>`
+          const time  = new Date(t.created_at).toLocaleTimeString("th-TH",{hour12:false});
+          const isBuy = t.side === "buy";
+          const pf    = t.net_profit != null ? +t.net_profit : null;
+          const pfStr = pf != null
+            ? `<span style="color:${pf>=0?C.green:C.red};font-weight:700">${pf>=0?"+":""}$${Math.abs(pf).toFixed(4)}</span>`
+            : `<span style="color:${C.overlay}">—</span>`;
+          const price = t.price != null
+            ? `$${(+t.price).toLocaleString(undefined,{minimumFractionDigits:2})}`
             : "—";
-          const price   = t.price != null
-            ? `$${(+t.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-            : "—";
+          const lev = t.leverage ? `${t.leverage}x` : "—";
           return `<tr>
-            <td style="color:var(--overlay);font-size:0.75rem">${time}</td>
-            <td><span class="badge ${isBuy ? "buy" : "sell"}">${isBuy ? "BUY" : "SELL"}</span></td>
-            <td>${price}</td>
+            <td style="color:var(--overlay);font-size:0.72rem">${time}</td>
+            <td style="font-size:0.72rem;color:var(--subtext)">${lev}</td>
+            <td><span class="badge ${isBuy?"buy":"sell"}">${isBuy?"BUY":"SELL"}</span></td>
+            <td style="font-family:'Cascadia Code','Consolas',monospace;font-size:0.78rem">${price}</td>
             <td>${pfStr}</td>
           </tr>`;
         }).join("");
       }
-    } catch (e) {
-      console.warn("trades:", e.message);
-    }
+    } catch(e) { console.warn("trades:", e.message); }
 
-  } catch (err) {
+  } catch(err) {
     console.error("refresh error:", err);
-    document.getElementById("bots-grid").innerHTML =
-      `<div style="grid-column:1/-1;text-align:center;color:var(--red);padding:20px">เชื่อมต่อ Supabase ไม่ได้: ${err.message}</div>`;
   }
 }
 
-// ── Init ────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  initChart();
-  refresh();
-  setInterval(refresh, 30000);
-});
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+initCandleChart();
+initPnlChart();
+fetchCandles("15m");
+refresh();
+
+setInterval(() => { refresh(); },         30000);  // Bot data ทุก 30s
+setInterval(() => { fetchCandles(currentInterval); }, 60000);  // Candles ทุก 1 นาที
 </script>
 </body>
 </html>
