@@ -30,7 +30,7 @@
       overflow: hidden;
     }
 
-    .container {
+    .main-layout {
       display: flex;
       width: 100%;
       height: 100vh;
@@ -39,7 +39,81 @@
     }
 
     /* ═══════════════════════════════════════════════════════════ */
-    /* LEFT SIDE — Charts */
+    /* LEFT SIDEBAR — Bot Status */
+    /* ═══════════════════════════════════════════════════════════ */
+    .left-sidebar {
+      width: 220px;
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-dark));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .bot-item {
+      padding: 12px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+
+    .bot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .bot-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .bot-lever {
+      font-size: 0.75rem;
+      background: var(--accent);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .bot-change {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .change-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    .change-value {
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+
+    .change-up { color: var(--green); }
+    .change-down { color: var(--red); }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* CENTER — Charts */
     /* ═══════════════════════════════════════════════════════════ */
     .charts-section {
       flex: 1;
@@ -57,6 +131,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
 
     .chart-header {
@@ -71,6 +146,21 @@
       font-size: 1rem;
       font-weight: 600;
       color: var(--text-primary);
+    }
+
+    .chart-info {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .grid-count {
+      background: var(--accent);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: 600;
     }
 
     .timeframe-buttons {
@@ -103,145 +193,108 @@
     .chart-wrapper {
       flex: 1;
       overflow: hidden;
+      position: relative;
     }
 
     /* ═══════════════════════════════════════════════════════════ */
-    /* RIGHT SIDE — Bot Status Panel */
+    /* RIGHT SIDE — Stats & Table */
     /* ═══════════════════════════════════════════════════════════ */
-    .status-panel {
-      width: 280px;
+    .right-section {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stats-panel {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 8px;
+      padding: 16px;
+    }
+
+    .pnl-table {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    .status-header {
-      padding: 16px 16px;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg-hover);
-    }
-
-    .status-title {
-      font-size: 1.1rem;
+    .table-title {
+      font-size: 0.95rem;
       font-weight: 700;
       color: var(--text-primary);
-      margin-bottom: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
     }
 
-    .status-summary {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-    }
-
-    .summary-item {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .summary-label {
-      color: var(--text-secondary);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-    }
-
-    .summary-value {
-      font-weight: 700;
-      font-family: 'Courier New', monospace;
-    }
-
-    .status-list {
+    .table-wrapper {
       flex: 1;
       overflow-y: auto;
-      padding: 12px 0;
+      font-size: 0.8rem;
     }
 
-    .bot-status-item {
-      padding: 12px 12px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+      padding: 8px 6px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
       border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      transition: background 0.2s;
+      position: sticky;
+      top: 0;
     }
 
-    .bot-status-item:hover {
-      background: var(--bg-hover);
-    }
-
-    .bot-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .bot-name {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .bot-leverage {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      background: var(--bg-hover);
-      padding: 2px 8px;
-      border-radius: 3px;
-    }
-
-    .bot-status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 4px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
-
-    .status-running {
-      background: rgba(38, 166, 154, 0.2);
-      color: var(--green);
-    }
-
-    .status-stopped {
-      background: rgba(239, 83, 80, 0.2);
-      color: var(--red);
-    }
-
-    .status-unknown {
-      background: rgba(249, 168, 37, 0.2);
-      color: var(--yellow);
-    }
-
-    .bot-pnl {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-    }
-
-    .pnl-label {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-    }
-
-    .pnl-value {
-      font-size: 1.1rem;
-      font-weight: 700;
+    td {
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(47, 58, 77, 0.3);
       font-family: 'Courier New', monospace;
     }
 
-    .pnl-positive { color: var(--green); }
-    .pnl-negative { color: var(--red); }
+    tr:hover {
+      background: var(--bg-hover);
+    }
+
+    .bot-col {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .pnl-positive {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .pnl-negative {
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .pnl-neutral {
+      color: var(--text-secondary);
+    }
+
+    .summary-row {
+      background: var(--bg-hover);
+      font-weight: 700;
+      border-top: 2px solid var(--border);
+      margin-top: 4px;
+    }
 
     /* ═══════════════════════════════════════════════════════════ */
-    /* Scrollbar Styling */
+    /* Scrollbar */
     /* ═══════════════════════════════════════════════════════════ */
     ::-webkit-scrollbar {
       width: 6px;
@@ -262,18 +315,27 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- LEFT: Charts -->
+  <div class="main-layout">
+    <!-- LEFT: Bot Status Sidebar -->
+    <div class="left-sidebar">
+      <div class="sidebar-title">📊 Bot Status</div>
+      <div id="bot-list"></div>
+    </div>
+
+    <!-- CENTER: Charts -->
     <div class="charts-section">
       <!-- Chart 1 -->
       <div class="chart-container">
         <div class="chart-header">
-          <div class="chart-title">📊 Grid Bot Chart</div>
-          <div class="timeframe-buttons">
-            <button class="tf-btn active" data-tf="5m">5m</button>
-            <button class="tf-btn" data-tf="15m">15m</button>
-            <button class="tf-btn" data-tf="30m">30m</button>
-            <button class="tf-btn" data-tf="1d">1D</button>
+          <div class="chart-title">Grid Bot Chart</div>
+          <div class="chart-info">
+            <div class="grid-count">25 Grids</div>
+            <div class="timeframe-buttons">
+              <button class="tf-btn active" data-tf="5m">5m</button>
+              <button class="tf-btn" data-tf="15m">15m</button>
+              <button class="tf-btn" data-tf="30m">30m</button>
+              <button class="tf-btn" data-tf="1d">1D</button>
+            </div>
           </div>
         </div>
         <div class="chart-wrapper" id="chart1"></div>
@@ -282,61 +344,64 @@
       <!-- Chart 2 -->
       <div class="chart-container">
         <div class="chart-header">
-          <div class="chart-title">📈 Trend Bot Chart</div>
-          <div class="timeframe-buttons">
-            <button class="tf-btn active" data-tf="5m">5m</button>
-            <button class="tf-btn" data-tf="15m">15m</button>
-            <button class="tf-btn" data-tf="30m">30m</button>
-            <button class="tf-btn" data-tf="1d">1D</button>
+          <div class="chart-title">Trend Bot Chart</div>
+          <div class="chart-info">
+            <div class="grid-count">Dynamic Range</div>
+            <div class="timeframe-buttons">
+              <button class="tf-btn active" data-tf="5m">5m</button>
+              <button class="tf-btn" data-tf="15m">15m</button>
+              <button class="tf-btn" data-tf="30m">30m</button>
+              <button class="tf-btn" data-tf="1d">1D</button>
+            </div>
           </div>
         </div>
         <div class="chart-wrapper" id="chart2"></div>
       </div>
     </div>
 
-    <!-- RIGHT: Bot Status -->
-    <div class="status-panel">
-      <div class="status-header">
-        <div class="status-title">Bot Status</div>
-        <div class="status-summary">
-          <div class="summary-item">
-            <span class="summary-label">Active</span>
-            <span class="summary-value" id="active-count">0/6</span>
+    <!-- RIGHT: Stats & P&L Table -->
+    <div class="right-section">
+      <div class="stats-panel">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Active Bots</div>
+            <div style="font-size: 1.4rem; font-weight: 700;" id="active-bots">4/6</div>
           </div>
-          <div class="summary-item">
-            <span class="summary-label">Total P&L</span>
-            <span class="summary-value" id="total-pnl" style="color: var(--green);">+$0.00</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Last Update</span>
-            <span class="summary-value" id="last-update">--:--</span>
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Total P&L</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: var(--green);" id="total-pnl">+$100.45</div>
           </div>
         </div>
       </div>
 
-      <div class="status-list" id="bot-list">
-        <!-- Bot items will be inserted here -->
+      <div class="pnl-table">
+        <div class="table-title">P&L Comparison</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Bot</th>
+                <th>Lev</th>
+                <th>P&L</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody id="pnl-body">
+              <!-- Rows will be inserted here -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
     // ═════════════════════════════════════════════════════════════
-    // TradingView Lightweight Charts Setup
+    // Chart Setup
     // ═════════════════════════════════════════════════════════════
 
-    const chartConfigs = {
-      chart1: { elementId: 'chart1', title: 'Grid Bot' },
-      chart2: { elementId: 'chart2', title: 'Trend Bot' }
-    };
-
-    let charts = {};
-    let candlestickSeries = {};
-
-    function initChart(key) {
-      const config = chartConfigs[key];
-      const element = document.getElementById(config.elementId);
-
+    function createChart(elementId) {
+      const element = document.getElementById(elementId);
       const chart = LightweightCharts.createChart(element, {
         layout: {
           background: { color: '#131722' },
@@ -347,20 +412,10 @@
         grid: {
           vertLines: { color: 'rgba(42, 50, 66, 0.5)' },
           horzLines: { color: 'rgba(42, 50, 66, 0.5)' }
-        },
-        timeScale: {
-          timeVisible: true,
-          secondsVisible: true,
-          tickMarkFormatter: (time, type) => {
-            const date = new Date(time * 1000);
-            const h = date.getHours().toString().padStart(2, '0');
-            const m = date.getMinutes().toString().padStart(2, '0');
-            return `${h}:${m}`;
-          }
         }
       });
 
-      candlestickSeries[key] = chart.addCandlestickSeries({
+      const candlestickSeries = chart.addCandlestickSeries({
         upColor: '#26a69a',
         downColor: '#ef5350',
         borderVisible: false,
@@ -369,130 +424,133 @@
       });
 
       chart.timeScale().fitContent();
-      charts[key] = chart;
+      return { chart, candlestickSeries };
     }
 
-    // Initialize charts
-    initChart('chart1');
-    initChart('chart2');
-
-    // Sample data (in production, fetch from API/Supabase)
+    // Generate sample candlestick data
     function generateCandleData() {
       const data = [];
       let price = 2000;
       const now = Math.floor(Date.now() / 1000);
 
       for (let i = 100; i > 0; i--) {
-        const time = now - (i * 300); // 5-minute intervals
+        const time = now - (i * 300);
         const open = price;
         price += (Math.random() - 0.5) * 10;
         const high = Math.max(open, price) + Math.random() * 5;
         const low = Math.min(open, price) - Math.random() * 5;
         const close = price;
-
         data.push({ time, open, high, low, close });
       }
       return data;
     }
 
+    const chart1Data = createChart('chart1');
+    const chart2Data = createChart('chart2');
+
     const data = generateCandleData();
-    candlestickSeries['chart1'].setData(data);
-    candlestickSeries['chart2'].setData(data.map(d => ({
+    chart1Data.candlestickSeries.setData(data);
+    chart2Data.candlestickSeries.setData(data.map(d => ({
       ...d,
       close: d.close + (Math.random() - 0.5) * 5
     })));
 
-    // Timeframe button handlers
-    document.querySelectorAll('.tf-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        const parent = this.parentElement;
-        parent.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-
-        const tf = this.dataset.tf;
-        console.log(`Switched to ${tf}`);
-        // In production: fetch new data for this timeframe
-      });
-    });
-
     // ═════════════════════════════════════════════════════════════
-    // Bot Status Data
+    // Bot Status & P&L Data
     // ═════════════════════════════════════════════════════════════
 
     const botData = [
-      { name: 'Grid Bot', leverage: '2x', type: 'grid', status: 'running', pnl: 12.45 },
-      { name: 'Grid Bot', leverage: '3x', type: 'grid', status: 'stopped', pnl: 8.92 },
-      { name: 'Grid Bot', leverage: '5x', type: 'grid', status: 'running', pnl: 5.23 },
-      { name: 'Trend Bot', leverage: '2x', type: 'trend', status: 'running', pnl: 15.67 },
-      { name: 'Trend Bot', leverage: '3x', type: 'trend', status: 'unknown', pnl: 0 },
-      { name: 'Trend Bot', leverage: '5x', type: 'trend', status: 'running', pnl: 22.34 }
+      { name: 'Grid Bot', lev: '2x', status: 'running', pnl: 12.45, change: 0.62 },
+      { name: 'Grid Bot', lev: '3x', status: 'stopped', pnl: 8.92, change: -0.45 },
+      { name: 'Grid Bot', lev: '5x', status: 'running', pnl: 5.23, change: 0.26 },
+      { name: 'Trend Bot', lev: '2x', status: 'running', pnl: 15.67, change: 0.78 },
+      { name: 'Trend Bot', lev: '3x', status: 'unknown', pnl: 0, change: 0 },
+      { name: 'Trend Bot', lev: '5x', status: 'running', pnl: 22.34, change: 1.12 }
     ];
 
     function renderBotStatus() {
-      const list = document.getElementById('bot-list');
-      list.innerHTML = '';
+      const botList = document.getElementById('bot-list');
+      const pnlBody = document.getElementById('pnl-body');
+
+      botList.innerHTML = '';
+      pnlBody.innerHTML = '';
 
       let activeCount = 0;
       let totalPnL = 0;
 
-      botData.forEach(bot => {
+      botData.forEach((bot, idx) => {
         if (bot.status === 'running') activeCount++;
         totalPnL += bot.pnl;
 
+        // Sidebar item
+        const statusIcon = bot.status === 'running' ? '✅' :
+                          bot.status === 'stopped' ? '❌' : '⚠️';
+        const changeClass = bot.change > 0 ? 'change-up' : bot.change < 0 ? 'change-down' : 'change-neutral';
+        const changeSign = bot.change > 0 ? '+' : '';
+
         const item = document.createElement('div');
-        item.className = 'bot-status-item';
-
-        let statusClass = `status-${bot.status}`;
-        let statusIcon = bot.status === 'running' ? '✅' :
-                        bot.status === 'stopped' ? '❌' : '⚠️';
-
+        item.className = 'bot-item';
         item.innerHTML = `
           <div class="bot-header">
             <span class="bot-name">${bot.name}</span>
-            <span class="bot-leverage">${bot.leverage}</span>
+            <span class="bot-lever">${bot.lev}</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="bot-status-badge ${statusClass}">
-              ${statusIcon} ${bot.status.toUpperCase()}
-            </span>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 0.75rem;">${statusIcon} ${bot.status.toUpperCase()}</span>
           </div>
-          <div class="bot-pnl">
-            <span class="pnl-label">P&L</span>
-            <span class="pnl-value ${bot.pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">
-              ${bot.pnl >= 0 ? '+' : ''}$${bot.pnl.toFixed(2)}
-            </span>
+          <div class="bot-change">
+            <span class="change-label">24h</span>
+            <span class="change-value ${changeClass}">${changeSign}${bot.change.toFixed(2)}%</span>
           </div>
         `;
+        botList.appendChild(item);
 
-        list.appendChild(item);
+        // Table row
+        const pnlClass = bot.pnl > 0 ? 'pnl-positive' : bot.pnl < 0 ? 'pnl-negative' : 'pnl-neutral';
+        const pnlSign = bot.pnl > 0 ? '+' : '';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="bot-col">${bot.name}</td>
+          <td>${bot.lev}</td>
+          <td class="${pnlClass}">${pnlSign}$${bot.pnl.toFixed(2)}</td>
+          <td class="${changeClass}">${changeSign}${bot.change.toFixed(2)}%</td>
+        `;
+        pnlBody.appendChild(row);
       });
 
-      document.getElementById('active-count').textContent = `${activeCount}/6`;
+      // Summary row
+      const summaryRow = document.createElement('tr');
+      summaryRow.className = 'summary-row';
+      summaryRow.innerHTML = `
+        <td class="bot-col">TOTAL</td>
+        <td>—</td>
+        <td class="pnl-positive">+$${totalPnL.toFixed(2)}</td>
+        <td>—</td>
+      `;
+      pnlBody.appendChild(summaryRow);
 
-      const pnlElement = document.getElementById('total-pnl');
-      pnlElement.textContent = `${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
-      pnlElement.style.color = totalPnL >= 0 ? 'var(--green)' : 'var(--red)';
-
-      const now = new Date();
-      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      document.getElementById('last-update').textContent = timeStr;
+      // Update header stats
+      document.getElementById('active-bots').textContent = `${activeCount}/6`;
+      const totalPnLEl = document.getElementById('total-pnl');
+      totalPnLEl.textContent = `${totalPnL > 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
+      totalPnLEl.style.color = totalPnL > 0 ? 'var(--green)' : totalPnL < 0 ? 'var(--red)' : 'var(--text-secondary)';
     }
 
-    // Render initial state
     renderBotStatus();
 
-    // Simulate live updates
+    // Live update simulation
     setInterval(() => {
-      // Update with new data from Supabase
       botData.forEach(bot => {
         bot.pnl += (Math.random() - 0.5) * 2;
+        bot.change += (Math.random() - 0.5) * 0.2;
       });
       renderBotStatus();
     }, 5000);
 
     // Handle window resize
     window.addEventListener('resize', () => {
-      Object.values(charts).forEach(chart => {
+      [chart1Data, chart2Data].forEach(({ chart }) => {
         setTimeout(() => {
           chart.applyOptions({ width: chart.parentElement.clientWidth });
         }, 0);
