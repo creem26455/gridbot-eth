@@ -430,9 +430,23 @@
           <div class="summary-count" id="loss-count">23 orders</div>
         </div>
         <div class="summary-box">
-          <div class="summary-label">Net Profit Today</div>
-          <div class="summary-amount amount-profit" id="net-profit">+$189.24</div>
-          <div class="summary-count">24h total</div>
+          <div class="summary-label">Net Profit</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">24h</div>
+              <div style="display: flex; gap: 8px; align-items: baseline;">
+                <span class="summary-amount amount-profit" id="net-profit-24h">+$189.24</span>
+                <span id="net-profit-24h-pct" style="font-size: 0.9rem; color: var(--green);">+2.45%</span>
+              </div>
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 8px;">
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">Total</div>
+              <div style="display: flex; gap: 8px; align-items: baseline;">
+                <span class="summary-amount amount-profit" id="net-profit-total">+$1,234.56</span>
+                <span id="net-profit-total-pct" style="font-size: 0.9rem; color: var(--green);">+15.32%</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -512,7 +526,10 @@
       lossOrders: 23,
       activeGrids: 4,
       totalGrids: 6,
-      netProfit: 189.24
+      netProfit24h: 189.24,
+      netProfitTotal: 1234.56,
+      netProfit24hPercent: 2.45,
+      netProfitTotalPercent: 15.32
     };
 
     // Market data
@@ -600,7 +617,19 @@
       document.getElementById('loss-amount').textContent = `-$${summaryData.lossAmount.toFixed(2)}`;
       document.getElementById('loss-count').textContent = `${summaryData.lossOrders} orders`;
       document.getElementById('active-grids').textContent = `${summaryData.activeGrids} / ${summaryData.totalGrids}`;
-      document.getElementById('net-profit').textContent = `+$${summaryData.netProfit.toFixed(2)}`;
+
+      // Net Profit (24h and Total)
+      document.getElementById('net-profit-24h').textContent = `+$${summaryData.netProfit24h.toFixed(2)}`;
+      const pct24hClass = summaryData.netProfit24hPercent >= 0 ? 'change-up' : 'change-down';
+      const pct24hSign = summaryData.netProfit24hPercent >= 0 ? '+' : '';
+      document.getElementById('net-profit-24h-pct').textContent = `${pct24hSign}${summaryData.netProfit24hPercent.toFixed(2)}%`;
+      document.getElementById('net-profit-24h-pct').style.color = summaryData.netProfit24hPercent >= 0 ? 'var(--green)' : 'var(--red)';
+
+      document.getElementById('net-profit-total').textContent = `+$${summaryData.netProfitTotal.toFixed(2)}`;
+      const pctTotalClass = summaryData.netProfitTotalPercent >= 0 ? 'change-up' : 'change-down';
+      const pctTotalSign = summaryData.netProfitTotalPercent >= 0 ? '+' : '';
+      document.getElementById('net-profit-total-pct').textContent = `${pctTotalSign}${summaryData.netProfitTotalPercent.toFixed(2)}%`;
+      document.getElementById('net-profit-total-pct').style.color = summaryData.netProfitTotalPercent >= 0 ? 'var(--green)' : 'var(--red)';
     }
 
     renderDashboard();
@@ -616,7 +645,10 @@
         asset.change += (Math.random() - 0.5) * 0.5;
       });
       summaryData.matchedAmount += (Math.random() - 0.5) * 5;
-      summaryData.netProfit = summaryData.matchedAmount - summaryData.lossAmount;
+      summaryData.netProfit24h = summaryData.matchedAmount - summaryData.lossAmount;
+      summaryData.netProfitTotal += (Math.random() - 0.5) * 3;
+      summaryData.netProfit24hPercent += (Math.random() - 0.5) * 0.5;
+      summaryData.netProfitTotalPercent += (Math.random() - 0.5) * 0.3;
       renderDashboard();
     }, 5000);
 
