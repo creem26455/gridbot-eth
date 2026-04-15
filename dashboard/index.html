@@ -260,9 +260,9 @@
 
     /* MARKET WATCH */
     .pnl-section {
-      width: 380px;
+      width: 420px;
       background: var(--bg-card);
-      border: 1px solid var(--border);
+      border: 2px solid var(--accent);
       border-radius: 8px;
       padding: 16px;
       display: flex;
@@ -271,18 +271,20 @@
     }
 
     .table-title {
-      font-size: 1.1rem;
-      font-weight: 700;
+      font-size: 1.2rem;
+      font-weight: 800;
       color: var(--text-primary);
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
+      border-bottom: 2px solid var(--accent);
       padding-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .table-wrapper {
       flex: 1;
       overflow-y: auto;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
     }
 
     table {
@@ -292,27 +294,28 @@
 
     th {
       background: var(--bg-hover);
-      color: var(--text-secondary);
-      padding: 10px 8px;
+      color: var(--accent);
+      padding: 12px 10px;
       text-align: left;
-      font-weight: 700;
-      font-size: 0.8rem;
+      font-weight: 800;
+      font-size: 0.85rem;
       text-transform: uppercase;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 2px solid var(--accent);
       position: sticky;
       top: 0;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
     }
 
     td {
-      padding: 10px 8px;
-      border-bottom: 1px solid rgba(47, 58, 77, 0.4);
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(56, 97, 251, 0.2);
       font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
+      font-weight: 600;
     }
 
     tr:hover {
-      background: var(--bg-hover);
+      background: rgba(56, 97, 251, 0.1);
     }
 
     .bot-col {
@@ -568,7 +571,7 @@
 
       marketData.forEach(asset => {
         const changeClass = asset.change > 0 ? 'pnl-positive' : asset.change < 0 ? 'pnl-negative' : '';
-        const changeSign = asset.change > 0 ? '+' : '';
+        const changeSign = asset.change > 0 ? '📈 +' : asset.change < 0 ? '📉 ' : '';
 
         let priceStr = '';
         if (asset.symbol === 'BTC' || asset.symbol === 'GOLD') {
@@ -583,9 +586,9 @@
 
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="bot-col"><strong>${asset.symbol}</strong></td>
-          <td style="text-align: right; font-size: 0.85rem;">${priceStr}</td>
-          <td class="${changeClass}" style="text-align: right;"><strong>${changeSign}${asset.change.toFixed(2)}%</strong></td>
+          <td class="bot-col">${asset.symbol}</td>
+          <td style="text-align: right; font-weight: 700;">${priceStr}</td>
+          <td class="${changeClass}" style="text-align: right; font-weight: 800;">${changeSign}${Math.abs(asset.change).toFixed(2)}%</td>
         `;
         marketBody.appendChild(row);
       });
