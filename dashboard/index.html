@@ -620,6 +620,56 @@
       renderDashboard();
     }, 5000);
 
+    // ═════════════════════════════════════════════════════════════
+    // Timeframe Button Handler
+    // ═════════════════════════════════════════════════════════════
+    function generateCandleDataForTimeframe(timeframe) {
+      const data = [];
+      let price = 2000;
+      const now = Math.floor(Date.now() / 1000);
+
+      let interval = 300; // 5 minutes default
+      let count = 100;
+
+      if (timeframe === '15m') {
+        interval = 900; // 15 minutes
+        count = 100;
+      } else if (timeframe === '30m') {
+        interval = 1800; // 30 minutes
+        count = 100;
+      } else if (timeframe === '1d') {
+        interval = 86400; // 1 day
+        count = 60;
+      }
+
+      for (let i = count; i > 0; i--) {
+        const time = now - (i * interval);
+        const open = price;
+        price += (Math.random() - 0.5) * 20;
+        const high = Math.max(open, price) + Math.random() * 10;
+        const low = Math.min(open, price) - Math.random() * 10;
+        const close = price;
+        data.push({ time, open, high, low, close });
+      }
+      return data;
+    }
+
+    // Timeframe button click handlers
+    document.querySelectorAll('.tf-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const timeframe = e.target.dataset.tf;
+
+        // Update active button
+        document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+
+        // Update chart data
+        const newData = generateCandleDataForTimeframe(timeframe);
+        chartData.candlestickSeries.setData(newData);
+        chartData.chart.timeScale().fitContent();
+      });
+    });
+
     // Resize handler
     window.addEventListener('resize', () => {
       setTimeout(() => {
