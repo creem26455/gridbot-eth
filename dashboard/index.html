@@ -50,81 +50,83 @@
 
     /* LEFT SIDEBAR */
     .left-sidebar {
-      width: 180px;
+      width: 280px;
       background: linear-gradient(135deg, var(--bg-card), var(--bg-dark));
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 14px;
+      padding: 16px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
 
     .sidebar-title {
-      font-size: 0.9rem;
+      font-size: 1.1rem;
       font-weight: 700;
       color: var(--text-primary);
       border-bottom: 1px solid var(--border);
-      padding-bottom: 6px;
+      padding-bottom: 8px;
     }
 
     .bot-item {
-      padding: 10px;
+      padding: 14px;
       background: var(--bg-dark);
       border: 1px solid var(--border);
       border-radius: 6px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      font-size: 0.8rem;
+      gap: 8px;
+      font-size: 0.9rem;
     }
 
     .bot-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
 
     .bot-name {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text-primary);
-      font-size: 0.75rem;
+      font-size: 0.95rem;
     }
 
     .bot-lever {
-      font-size: 0.7rem;
+      font-size: 0.85rem;
       background: var(--accent);
       color: white;
-      padding: 2px 5px;
+      padding: 3px 8px;
       border-radius: 3px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .bot-status {
       display: flex;
       align-items: center;
-      gap: 3px;
-      font-size: 0.7rem;
-      font-weight: 600;
+      gap: 4px;
+      font-size: 0.85rem;
+      font-weight: 700;
     }
 
     .bot-change {
       display: flex;
       align-items: baseline;
-      gap: 2px;
+      gap: 3px;
     }
 
     .change-label {
-      font-size: 0.65rem;
+      font-size: 0.8rem;
       color: var(--text-secondary);
+      text-transform: uppercase;
+      font-weight: 600;
     }
 
     .change-value {
       font-weight: 700;
       font-family: 'Courier New', monospace;
-      font-size: 0.8rem;
+      font-size: 1rem;
     }
 
     .change-up { color: var(--green); }
@@ -408,21 +410,20 @@
         </div>
       </div>
 
-      <!-- P&L Table -->
+      <!-- Market Watch -->
       <div class="pnl-section">
-        <div class="table-title">P&L by Bot</div>
+        <div class="table-title">📊 Market Watch</div>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>Bot</th>
-                <th>Lev</th>
-                <th>P&L</th>
-                <th>%</th>
+                <th>Asset</th>
+                <th>Price</th>
+                <th>Change</th>
               </tr>
             </thead>
-            <tbody id="pnl-body">
-              <!-- Rows inserted here -->
+            <tbody id="market-body">
+              <!-- Market data inserted here -->
             </tbody>
           </table>
         </div>
@@ -507,6 +508,22 @@
       netProfit: 189.24
     };
 
+    // Market data
+    const marketData = [
+      { symbol: 'BTC', name: 'Bitcoin', price: 42850.25, change: 2.45 },
+      { symbol: 'ETH', name: 'Ethereum', price: 2245.80, change: -1.32 },
+      { symbol: 'BNB', name: 'Binance', price: 618.50, change: 1.85 },
+      { symbol: 'SOL', name: 'Solana', price: 142.30, change: 3.21 },
+      { symbol: 'XRP', name: 'Ripple', price: 2.48, change: -0.87 },
+      { symbol: 'ADA', name: 'Cardano', price: 0.98, change: 1.23 },
+      { symbol: 'DOGE', name: 'Dogecoin', price: 0.395, change: 2.15 },
+      { symbol: 'LINK', name: 'Chainlink', price: 22.45, change: 0.65 },
+      { symbol: 'MATIC', name: 'Polygon', price: 1.08, change: -2.34 },
+      { symbol: 'AVAX', name: 'Avalanche', price: 38.92, change: 1.78 },
+      { symbol: 'GOLD', name: 'Gold (oz)', price: 2385.50, change: 0.45 },
+      { symbol: 'OIL', name: 'Crude Oil (bbl)', price: 82.45, change: -1.23 }
+    ];
+
     function renderDashboard() {
       // Bot list
       const botList = document.getElementById('bot-list');
@@ -542,35 +559,33 @@
         botList.appendChild(item);
       });
 
-      // P&L Table
-      const pnlBody = document.getElementById('pnl-body');
-      pnlBody.innerHTML = '';
+      // Market Watch Table
+      const marketBody = document.getElementById('market-body');
+      marketBody.innerHTML = '';
 
-      botData.forEach(bot => {
-        const pnlClass = bot.pnl > 0 ? 'pnl-positive' : bot.pnl < 0 ? 'pnl-negative' : '';
-        const pnlSign = bot.pnl > 0 ? '+' : '';
-        const changeClass = bot.change > 0 ? 'change-up' : bot.change < 0 ? 'change-down' : '';
-        const changeSign = bot.change > 0 ? '+' : '';
+      marketData.forEach(asset => {
+        const changeClass = asset.change > 0 ? 'pnl-positive' : asset.change < 0 ? 'pnl-negative' : '';
+        const changeSign = asset.change > 0 ? '+' : '';
+
+        let priceStr = '';
+        if (asset.symbol === 'BTC' || asset.symbol === 'GOLD') {
+          priceStr = `$${asset.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        } else if (asset.symbol === 'OIL') {
+          priceStr = `$${asset.price.toFixed(2)}`;
+        } else if (asset.price < 1) {
+          priceStr = `$${asset.price.toFixed(4)}`;
+        } else {
+          priceStr = `$${asset.price.toFixed(2)}`;
+        }
 
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="bot-col">${bot.name}</td>
-          <td>${bot.lev}</td>
-          <td class="${pnlClass}">${pnlSign}$${bot.pnl.toFixed(2)}</td>
-          <td class="${changeClass}">${changeSign}${bot.change.toFixed(2)}%</td>
+          <td class="bot-col"><strong>${asset.symbol}</strong></td>
+          <td style="text-align: right; font-size: 0.85rem;">${priceStr}</td>
+          <td class="${changeClass}" style="text-align: right;"><strong>${changeSign}${asset.change.toFixed(2)}%</strong></td>
         `;
-        pnlBody.appendChild(row);
+        marketBody.appendChild(row);
       });
-
-      const summaryRow = document.createElement('tr');
-      summaryRow.className = 'summary-row';
-      summaryRow.innerHTML = `
-        <td class="bot-col">TOTAL</td>
-        <td>—</td>
-        <td class="pnl-positive">+$${totalPnL.toFixed(2)}</td>
-        <td>—</td>
-      `;
-      pnlBody.appendChild(summaryRow);
 
       // Summary boxes
       document.getElementById('matched-amount').textContent = `+$${summaryData.matchedAmount.toFixed(2)}`;
@@ -588,6 +603,10 @@
       botData.forEach(bot => {
         bot.pnl += (Math.random() - 0.5) * 2;
         bot.change += (Math.random() - 0.5) * 0.2;
+      });
+      marketData.forEach(asset => {
+        asset.price += (Math.random() - 0.5) * (asset.symbol === 'BTC' ? 50 : asset.symbol === 'GOLD' ? 5 : 0.1);
+        asset.change += (Math.random() - 0.5) * 0.5;
       });
       summaryData.matchedAmount += (Math.random() - 0.5) * 5;
       summaryData.netProfit = summaryData.matchedAmount - summaryData.lossAmount;
