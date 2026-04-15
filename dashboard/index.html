@@ -46,6 +46,7 @@
       display: flex;
       gap: 12px;
       min-height: 0;
+      margin-bottom: 12px;
     }
 
     /* LEFT SIDEBAR */
@@ -207,10 +208,10 @@
     }
 
     /* ═══════════════════════════════════════════════════════════ */
-    /* BOTTOM ROW — Summary boxes + P&L Table */
+    /* BOTTOM ROW — Summary boxes only */
     /* ═══════════════════════════════════════════════════════════ */
     .bottom-row {
-      height: 240px;
+      height: 200px;
       display: flex;
       gap: 12px;
       min-height: 0;
@@ -364,7 +365,7 @@
 </head>
 <body>
   <div class="main-layout">
-    <!-- TOP ROW: Sidebar + Chart -->
+    <!-- TOP ROW: Sidebar + Chart + Market Watch -->
     <div class="top-row">
       <!-- LEFT: Bot Status -->
       <div class="left-sidebar">
@@ -388,9 +389,28 @@
         </div>
         <div class="chart-wrapper" id="main-chart"></div>
       </div>
+
+      <!-- RIGHT: Market Watch -->
+      <div class="pnl-section">
+        <div class="table-title">📊 Market Watch</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Price</th>
+                <th>Change</th>
+              </tr>
+            </thead>
+            <tbody id="market-body">
+              <!-- Market data inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
-    <!-- BOTTOM ROW: Summary + Table -->
+    <!-- BOTTOM ROW: Summary Boxes -->
     <div class="bottom-row">
       <!-- Summary Boxes -->
       <div class="summary-boxes">
@@ -413,25 +433,6 @@
           <div class="summary-label">Net Profit Today</div>
           <div class="summary-amount amount-profit" id="net-profit">+$189.24</div>
           <div class="summary-count">24h total</div>
-        </div>
-      </div>
-
-      <!-- Market Watch -->
-      <div class="pnl-section">
-        <div class="table-title">📊 Market Watch</div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset</th>
-                <th>Price</th>
-                <th>Change</th>
-              </tr>
-            </thead>
-            <tbody id="market-body">
-              <!-- Market data inserted here -->
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
