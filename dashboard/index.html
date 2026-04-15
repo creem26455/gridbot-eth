@@ -420,9 +420,46 @@
           <div class="summary-count" id="matched-count">120 orders</div>
         </div>
         <div class="summary-box">
-          <div class="summary-label">Active Grids</div>
-          <div class="summary-amount" id="active-grids" style="color: var(--accent);">4 / 6</div>
-          <div class="summary-count">Bot status</div>
+          <div class="summary-label">Grid Performance</div>
+          <div id="grid-performance" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div style="color: var(--text-secondary);">
+                <span style="font-weight: 700;">Grid 2x</span><br>
+                <span id="grid-2x-pnl" style="color: var(--green);">+$12.45</span>
+                <span id="grid-2x-pct" style="color: var(--green); margin-left: 4px;">+0.62%</span>
+              </div>
+              <div style="color: var(--text-secondary);">
+                <span style="font-weight: 700;">Grid 3x</span><br>
+                <span id="grid-3x-pnl" style="color: var(--red);">-$8.92</span>
+                <span id="grid-3x-pct" style="color: var(--red); margin-left: 4px;">-0.45%</span>
+              </div>
+              <div style="color: var(--text-secondary);">
+                <span style="font-weight: 700;">Grid 5x</span><br>
+                <span id="grid-5x-pnl" style="color: var(--green);">+$5.23</span>
+                <span id="grid-5x-pct" style="color: var(--green); margin-left: 4px;">+0.26%</span>
+              </div>
+              <div style="color: var(--text-secondary);">
+                <span style="font-weight: 700;">Trend 2x</span><br>
+                <span id="trend-2x-pnl" style="color: var(--green);">+$15.67</span>
+                <span id="trend-2x-pct" style="color: var(--green); margin-left: 4px;">+0.78%</span>
+              </div>
+              <div style="color: var(--text-secondary);">
+                <span style="font-weight: 700;">Trend 3x</span><br>
+                <span id="trend-3x-pnl" style="color: var(--text-secondary);">-</span>
+                <span id="trend-3x-pct" style="color: var(--text-secondary); margin-left: 4px;">-</span>
+              </div>
+              <div style="color: var(--text-secondary);">
+                <span style="font-weight: 700;">Trend 5x</span><br>
+                <span id="trend-5x-pnl" style="color: var(--green);">+$22.34</span>
+                <span id="trend-5x-pct" style="color: var(--green); margin-left: 4px;">+1.12%</span>
+              </div>
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 6px;">
+              <span style="color: var(--text-secondary); font-size: 0.8rem;">Total: </span>
+              <span id="grids-total-pnl" style="font-weight: 700; color: var(--green);">+$47.77</span>
+              <span id="grids-total-pct" style="margin-left: 4px; font-weight: 700; color: var(--green);">+2.33%</span>
+            </div>
+          </div>
         </div>
         <div class="summary-box">
           <div class="summary-label">❌ Loss Orders</div>
@@ -616,7 +653,41 @@
       document.getElementById('matched-count').textContent = `${summaryData.matchedOrders} orders`;
       document.getElementById('loss-amount').textContent = `-$${summaryData.lossAmount.toFixed(2)}`;
       document.getElementById('loss-count').textContent = `${summaryData.lossOrders} orders`;
-      document.getElementById('active-grids').textContent = `${summaryData.activeGrids} / ${summaryData.totalGrids}`;
+
+      // Grid Performance
+      function updateGridDisplay(elementId, pnl, change) {
+        const pnlEl = document.getElementById(elementId + '-pnl');
+        const pctEl = document.getElementById(elementId + '-pct');
+        const isProfit = pnl >= 0;
+        const sign = isProfit ? '+' : '';
+        pnlEl.textContent = `${sign}$${Math.abs(pnl).toFixed(2)}`;
+        pnlEl.style.color = isProfit ? 'var(--green)' : 'var(--red)';
+        pctEl.textContent = `${sign}${change.toFixed(2)}%`;
+        pctEl.style.color = isProfit ? 'var(--green)' : 'var(--red)';
+      }
+
+      updateGridDisplay('grid-2x', botData[0].pnl, botData[0].change);
+      updateGridDisplay('grid-3x', botData[1].pnl, botData[1].change);
+      updateGridDisplay('grid-5x', botData[2].pnl, botData[2].change);
+      updateGridDisplay('trend-2x', botData[3].pnl, botData[3].change);
+
+      // Trend 3x - unknown status
+      const trend3xPnL = document.getElementById('trend-3x-pnl');
+      const trend3xPct = document.getElementById('trend-3x-pct');
+      trend3xPnL.textContent = '-';
+      trend3xPct.textContent = '-';
+
+      updateGridDisplay('trend-5x', botData[5].pnl, botData[5].change);
+
+      // Total grids P&L
+      const totalGridPnL = botData.reduce((sum, bot) => sum + bot.pnl, 0);
+      const avgGridChange = botData.reduce((sum, bot) => sum + bot.change, 0) / botData.length;
+      const totalSign = totalGridPnL >= 0 ? '+' : '';
+      const totalChangeSign = avgGridChange >= 0 ? '+' : '';
+      document.getElementById('grids-total-pnl').textContent = `${totalSign}$${Math.abs(totalGridPnL).toFixed(2)}`;
+      document.getElementById('grids-total-pnl').style.color = totalGridPnL >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('grids-total-pct').textContent = `${totalChangeSign}${avgGridChange.toFixed(2)}%`;
+      document.getElementById('grids-total-pct').style.color = avgGridChange >= 0 ? 'var(--green)' : 'var(--red)';
 
       // Net Profit (24h and Total)
       document.getElementById('net-profit-24h').textContent = `+$${summaryData.netProfit24h.toFixed(2)}`;
