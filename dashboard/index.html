@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GridBot Pro — ETH/USDT Dashboard</title>
   <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
   <style>
     :root {
@@ -36,94 +35,103 @@
       height: 100vh;
       gap: 12px;
       padding: 12px;
+      flex-direction: column;
     }
 
     /* ═══════════════════════════════════════════════════════════ */
-    /* LEFT SIDEBAR — Bot Status */
+    /* TOP ROW — Left sidebar + Main chart */
     /* ═══════════════════════════════════════════════════════════ */
+    .top-row {
+      flex: 1;
+      display: flex;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    /* LEFT SIDEBAR */
     .left-sidebar {
-      width: 220px;
+      width: 180px;
       background: linear-gradient(135deg, var(--bg-card), var(--bg-dark));
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 16px;
+      padding: 14px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .sidebar-title {
-      font-size: 1rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: var(--text-primary);
       border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
 
     .bot-item {
-      padding: 12px;
+      padding: 10px;
       background: var(--bg-dark);
       border: 1px solid var(--border);
       border-radius: 6px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      font-size: 0.85rem;
+      gap: 6px;
+      font-size: 0.8rem;
     }
 
     .bot-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 4px;
     }
 
     .bot-name {
       font-weight: 600;
       color: var(--text-primary);
+      font-size: 0.75rem;
     }
 
     .bot-lever {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       background: var(--accent);
       color: white;
-      padding: 2px 6px;
+      padding: 2px 5px;
       border-radius: 3px;
+      font-weight: 600;
+    }
+
+    .bot-status {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.7rem;
+      font-weight: 600;
     }
 
     .bot-change {
       display: flex;
       align-items: baseline;
-      gap: 4px;
+      gap: 2px;
     }
 
     .change-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       color: var(--text-secondary);
-      text-transform: uppercase;
     }
 
     .change-value {
       font-weight: 700;
       font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
     }
 
     .change-up { color: var(--green); }
     .change-down { color: var(--red); }
 
-    /* ═══════════════════════════════════════════════════════════ */
-    /* CENTER — Charts */
-    /* ═══════════════════════════════════════════════════════════ */
-    .charts-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .chart-container {
+    /* MAIN CHART */
+    .chart-section {
       flex: 1;
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -131,7 +139,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      position: relative;
+      min-width: 0;
     }
 
     .chart-header {
@@ -148,19 +156,19 @@
       color: var(--text-primary);
     }
 
-    .chart-info {
+    .chart-controls {
       display: flex;
-      gap: 16px;
+      gap: 10px;
       align-items: center;
-      font-size: 0.85rem;
     }
 
-    .grid-count {
+    .grid-badge {
       background: var(--accent);
       color: white;
-      padding: 4px 12px;
+      padding: 4px 10px;
       border-radius: 4px;
       font-weight: 600;
+      font-size: 0.85rem;
     }
 
     .timeframe-buttons {
@@ -169,13 +177,13 @@
     }
 
     .tf-btn {
-      padding: 6px 12px;
+      padding: 5px 10px;
       background: transparent;
       border: 1px solid var(--border);
       color: var(--text-secondary);
       border-radius: 4px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       transition: all 0.2s;
     }
 
@@ -197,35 +205,71 @@
     }
 
     /* ═══════════════════════════════════════════════════════════ */
-    /* RIGHT SIDE — Stats & Table */
+    /* BOTTOM ROW — Summary boxes + P&L Table */
     /* ═══════════════════════════════════════════════════════════ */
-    .right-section {
-      width: 320px;
+    .bottom-row {
+      height: 240px;
       display: flex;
-      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .summary-boxes {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
 
-    .stats-panel {
+    .summary-box {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
     }
 
-    .pnl-table {
+    .summary-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .summary-amount {
+      font-size: 1.8rem;
+      font-weight: 800;
+      font-family: 'Courier New', monospace;
+      letter-spacing: -0.02em;
+    }
+
+    .summary-count {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .amount-profit { color: var(--green); }
+    .amount-loss { color: var(--red); }
+
+    /* P&L TABLE */
+    .pnl-section {
+      width: 320px;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 16px;
-      flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
     .table-title {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: var(--text-primary);
       margin-bottom: 12px;
@@ -236,7 +280,7 @@
     .table-wrapper {
       flex: 1;
       overflow-y: auto;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
     }
 
     table {
@@ -250,7 +294,7 @@
       padding: 8px 6px;
       text-align: left;
       font-weight: 600;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
       border-bottom: 1px solid var(--border);
       position: sticky;
@@ -280,10 +324,6 @@
     .pnl-negative {
       color: var(--red);
       font-weight: 600;
-    }
-
-    .pnl-neutral {
-      color: var(--text-secondary);
     }
 
     .summary-row {
@@ -316,20 +356,20 @@
 </head>
 <body>
   <div class="main-layout">
-    <!-- LEFT: Bot Status Sidebar -->
-    <div class="left-sidebar">
-      <div class="sidebar-title">📊 Bot Status</div>
-      <div id="bot-list"></div>
-    </div>
+    <!-- TOP ROW: Sidebar + Chart -->
+    <div class="top-row">
+      <!-- LEFT: Bot Status -->
+      <div class="left-sidebar">
+        <div class="sidebar-title">📊 Bot Status</div>
+        <div id="bot-list"></div>
+      </div>
 
-    <!-- CENTER: Charts -->
-    <div class="charts-section">
-      <!-- Chart 1 -->
-      <div class="chart-container">
+      <!-- CENTER: Main Chart -->
+      <div class="chart-section">
         <div class="chart-header">
-          <div class="chart-title">Grid Bot Chart</div>
-          <div class="chart-info">
-            <div class="grid-count">25 Grids</div>
+          <div class="chart-title">📈 ETH/USDT Grid Chart</div>
+          <div class="chart-controls">
+            <div class="grid-badge" id="grid-count">78 Grids Active</div>
             <div class="timeframe-buttons">
               <button class="tf-btn active" data-tf="5m">5m</button>
               <button class="tf-btn" data-tf="15m">15m</button>
@@ -338,44 +378,39 @@
             </div>
           </div>
         </div>
-        <div class="chart-wrapper" id="chart1"></div>
-      </div>
-
-      <!-- Chart 2 -->
-      <div class="chart-container">
-        <div class="chart-header">
-          <div class="chart-title">Trend Bot Chart</div>
-          <div class="chart-info">
-            <div class="grid-count">Dynamic Range</div>
-            <div class="timeframe-buttons">
-              <button class="tf-btn active" data-tf="5m">5m</button>
-              <button class="tf-btn" data-tf="15m">15m</button>
-              <button class="tf-btn" data-tf="30m">30m</button>
-              <button class="tf-btn" data-tf="1d">1D</button>
-            </div>
-          </div>
-        </div>
-        <div class="chart-wrapper" id="chart2"></div>
+        <div class="chart-wrapper" id="main-chart"></div>
       </div>
     </div>
 
-    <!-- RIGHT: Stats & P&L Table -->
-    <div class="right-section">
-      <div class="stats-panel">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-          <div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Active Bots</div>
-            <div style="font-size: 1.4rem; font-weight: 700;" id="active-bots">4/6</div>
-          </div>
-          <div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Total P&L</div>
-            <div style="font-size: 1.4rem; font-weight: 700; color: var(--green);" id="total-pnl">+$100.45</div>
-          </div>
+    <!-- BOTTOM ROW: Summary + Table -->
+    <div class="bottom-row">
+      <!-- Summary Boxes -->
+      <div class="summary-boxes">
+        <div class="summary-box">
+          <div class="summary-label">✅ Matched Orders</div>
+          <div class="summary-amount amount-profit" id="matched-amount">+$234.56</div>
+          <div class="summary-count" id="matched-count">120 orders</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">Active Grids</div>
+          <div class="summary-amount" id="active-grids" style="color: var(--accent);">4 / 6</div>
+          <div class="summary-count">Bot status</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">❌ Loss Orders</div>
+          <div class="summary-amount amount-loss" id="loss-amount">-$45.32</div>
+          <div class="summary-count" id="loss-count">23 orders</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">Net Profit Today</div>
+          <div class="summary-amount amount-profit" id="net-profit">+$189.24</div>
+          <div class="summary-count">24h total</div>
         </div>
       </div>
 
-      <div class="pnl-table">
-        <div class="table-title">P&L Comparison</div>
+      <!-- P&L Table -->
+      <div class="pnl-section">
+        <div class="table-title">P&L by Bot</div>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -387,7 +422,7 @@
               </tr>
             </thead>
             <tbody id="pnl-body">
-              <!-- Rows will be inserted here -->
+              <!-- Rows inserted here -->
             </tbody>
           </table>
         </div>
@@ -410,8 +445,8 @@
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI"'
         },
         grid: {
-          vertLines: { color: 'rgba(42, 50, 66, 0.5)' },
-          horzLines: { color: 'rgba(42, 50, 66, 0.5)' }
+          vertLines: { color: 'rgba(42, 50, 66, 0.8)' },
+          horzLines: { color: 'rgba(42, 50, 66, 0.8)' }
         }
       });
 
@@ -427,7 +462,7 @@
       return { chart, candlestickSeries };
     }
 
-    // Generate sample candlestick data
+    // Generate sample data
     function generateCandleData() {
       const data = [];
       let price = 2000;
@@ -445,15 +480,9 @@
       return data;
     }
 
-    const chart1Data = createChart('chart1');
-    const chart2Data = createChart('chart2');
-
+    const chartData = createChart('main-chart');
     const data = generateCandleData();
-    chart1Data.candlestickSeries.setData(data);
-    chart2Data.candlestickSeries.setData(data.map(d => ({
-      ...d,
-      close: d.close + (Math.random() - 0.5) * 5
-    })));
+    chartData.candlestickSeries.setData(data);
 
     // ═════════════════════════════════════════════════════════════
     // Bot Status & P&L Data
@@ -468,24 +497,31 @@
       { name: 'Trend Bot', lev: '5x', status: 'running', pnl: 22.34, change: 1.12 }
     ];
 
-    function renderBotStatus() {
-      const botList = document.getElementById('bot-list');
-      const pnlBody = document.getElementById('pnl-body');
+    const summaryData = {
+      matchedAmount: 234.56,
+      matchedOrders: 120,
+      lossAmount: 45.32,
+      lossOrders: 23,
+      activeGrids: 4,
+      totalGrids: 6,
+      netProfit: 189.24
+    };
 
+    function renderDashboard() {
+      // Bot list
+      const botList = document.getElementById('bot-list');
       botList.innerHTML = '';
-      pnlBody.innerHTML = '';
 
       let activeCount = 0;
       let totalPnL = 0;
 
-      botData.forEach((bot, idx) => {
+      botData.forEach(bot => {
         if (bot.status === 'running') activeCount++;
         totalPnL += bot.pnl;
 
-        // Sidebar item
         const statusIcon = bot.status === 'running' ? '✅' :
                           bot.status === 'stopped' ? '❌' : '⚠️';
-        const changeClass = bot.change > 0 ? 'change-up' : bot.change < 0 ? 'change-down' : 'change-neutral';
+        const changeClass = bot.change > 0 ? 'change-up' : bot.change < 0 ? 'change-down' : '';
         const changeSign = bot.change > 0 ? '+' : '';
 
         const item = document.createElement('div');
@@ -495,8 +531,8 @@
             <span class="bot-name">${bot.name}</span>
             <span class="bot-lever">${bot.lev}</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <span style="font-size: 0.75rem;">${statusIcon} ${bot.status.toUpperCase()}</span>
+          <div class="bot-status">
+            <span>${statusIcon} ${bot.status.toUpperCase()}</span>
           </div>
           <div class="bot-change">
             <span class="change-label">24h</span>
@@ -504,10 +540,17 @@
           </div>
         `;
         botList.appendChild(item);
+      });
 
-        // Table row
-        const pnlClass = bot.pnl > 0 ? 'pnl-positive' : bot.pnl < 0 ? 'pnl-negative' : 'pnl-neutral';
+      // P&L Table
+      const pnlBody = document.getElementById('pnl-body');
+      pnlBody.innerHTML = '';
+
+      botData.forEach(bot => {
+        const pnlClass = bot.pnl > 0 ? 'pnl-positive' : bot.pnl < 0 ? 'pnl-negative' : '';
         const pnlSign = bot.pnl > 0 ? '+' : '';
+        const changeClass = bot.change > 0 ? 'change-up' : bot.change < 0 ? 'change-down' : '';
+        const changeSign = bot.change > 0 ? '+' : '';
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -519,7 +562,6 @@
         pnlBody.appendChild(row);
       });
 
-      // Summary row
       const summaryRow = document.createElement('tr');
       summaryRow.className = 'summary-row';
       summaryRow.innerHTML = `
@@ -530,31 +572,33 @@
       `;
       pnlBody.appendChild(summaryRow);
 
-      // Update header stats
-      document.getElementById('active-bots').textContent = `${activeCount}/6`;
-      const totalPnLEl = document.getElementById('total-pnl');
-      totalPnLEl.textContent = `${totalPnL > 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
-      totalPnLEl.style.color = totalPnL > 0 ? 'var(--green)' : totalPnL < 0 ? 'var(--red)' : 'var(--text-secondary)';
+      // Summary boxes
+      document.getElementById('matched-amount').textContent = `+$${summaryData.matchedAmount.toFixed(2)}`;
+      document.getElementById('matched-count').textContent = `${summaryData.matchedOrders} orders`;
+      document.getElementById('loss-amount').textContent = `-$${summaryData.lossAmount.toFixed(2)}`;
+      document.getElementById('loss-count').textContent = `${summaryData.lossOrders} orders`;
+      document.getElementById('active-grids').textContent = `${summaryData.activeGrids} / ${summaryData.totalGrids}`;
+      document.getElementById('net-profit').textContent = `+$${summaryData.netProfit.toFixed(2)}`;
     }
 
-    renderBotStatus();
+    renderDashboard();
 
-    // Live update simulation
+    // Live updates
     setInterval(() => {
       botData.forEach(bot => {
         bot.pnl += (Math.random() - 0.5) * 2;
         bot.change += (Math.random() - 0.5) * 0.2;
       });
-      renderBotStatus();
+      summaryData.matchedAmount += (Math.random() - 0.5) * 5;
+      summaryData.netProfit = summaryData.matchedAmount - summaryData.lossAmount;
+      renderDashboard();
     }, 5000);
 
-    // Handle window resize
+    // Resize handler
     window.addEventListener('resize', () => {
-      [chart1Data, chart2Data].forEach(({ chart }) => {
-        setTimeout(() => {
-          chart.applyOptions({ width: chart.parentElement.clientWidth });
-        }, 0);
-      });
+      setTimeout(() => {
+        chartData.chart.applyOptions({ width: chartData.chart.parentElement.clientWidth });
+      }, 0);
     });
   </script>
 </body>
