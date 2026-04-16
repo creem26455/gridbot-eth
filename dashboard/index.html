@@ -505,14 +505,20 @@
     // ═════════════════════════════════════════════════════════════
     const SUPABASE_URL = 'https://tgrmivymsesqpdrsludq.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG';
-    let supabase;
-    try {
-      const { createClient } = window.supabase;
-      supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log('✅ Supabase initialized');
-    } catch (err) {
-      console.error('❌ Supabase init failed:', err);
-    }
+    let supabase = null;
+
+    // Initialize Supabase after library loads
+    window.addEventListener('load', () => {
+      try {
+        if (window.supabase) {
+          const { createClient } = window.supabase;
+          supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          console.log('✅ Supabase initialized');
+        }
+      } catch (err) {
+        console.error('❌ Supabase init failed:', err);
+      }
+    });
 
     // ═════════════════════════════════════════════════════════════
     // Fetch Real Data from Supabase
