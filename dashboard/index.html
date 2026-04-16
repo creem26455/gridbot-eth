@@ -506,19 +506,19 @@
     // Supabase Configuration
     const SUPABASE_URL = 'https://tgrmivymsesqpdrsludq.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG';
-    let supabase = null;
+    let gridSupabase = null;
 
     // Initialize Supabase client lazily when needed
     function getSupabaseClient() {
-      if (!supabase && window.supabase) {
+      if (!gridSupabase && window.supabase) {
         try {
-          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          gridSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           console.log('✅ Supabase client initialized');
         } catch (error) {
           console.error('❌ Failed to initialize Supabase:', error);
         }
       }
-      return supabase;
+      return gridSupabase;
     }
 
     // ═════════════════════════════════════════════════════════════
