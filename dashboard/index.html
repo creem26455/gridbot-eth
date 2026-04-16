@@ -513,79 +513,95 @@
     // ═════════════════════════════════════════════════════════════
     async function fetchRealBotData() {
       try {
-        // Fetch latest bot status for each leverage
+        console.log('📡 Fetching bot data from Supabase...');
+
+        // Fetch latest bot status - get all and process
         const { data: botStatus, error: statusError } = await supabase
           .from('bot_status')
           .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(6);
+          .order('updated_at', { ascending: false });
 
-        if (statusError) throw statusError;
-
-        // Process bot data - map to our botData structure
-        if (botStatus && botStatus.length > 0) {
-          return botStatus.map((bot, idx) => ({
-            name: bot.bot_tag === 'trend_v1' ? 'Trend Bot' : 'Grid Bot',
-            lev: bot.leverage,
-            status: bot.status,
-            pnl: parseFloat(bot.pnl_24h || 0),
-            change: parseFloat(bot.change_24h_percent || 0),
-            totalPnl: parseFloat(bot.total_pnl || 0),
-            totalChange: parseFloat(bot.total_pnl_percent || 0),
-            algo_id: bot.algo_id
-          }));
+        if (statusError) {
+          console.error('❌ Supabase error:', statusError);
+          return null;
         }
-      } catch (error) {
-        console.error('Error fetching bot data:', error);
-        return null;
-      }
-    }
 
-    async function fetchRealMarketData() {
-      try {
-        // For market data, we still use demo since it's not in our Supabase
-        // In production, you'd fetch from a market data API
-        return null; // Will use demo data
+        if (!botStatus || botStatus.length === 0) {
+          console.warn('⚠️ No bot status data found in Supabase');
+          return null;
+        }
+
+        console.log('✅ Fetched bot data:', botStatus);
+
+        // Group by leverage if multiple rows per leverage
+        const botMap = {};
+        botStatus.forEach(bot => {
+          const key = `${bot.leverage}_${bot.bot_tag || 'grid'}`;
+          if (!botMap[key] || new Date(bot.updated_at) > new Date(botMap[key].updated_at)) {
+            botMap[key] = bot;
+          }
+        });
+
+        // Convert to array and map to our botData structure
+        return Object.values(botMap).map((bot) => ({
+          name: (bot.bot_tag === 'trend_v1' || bot.bot_tag?.includes('trend')) ? 'Trend Bot' : 'Grid Bot',
+          lev: String(bot.leverage || '').includes('x') ? bot.leverage : bot.leverage + 'x',
+          status: (bot.status || 'unknown').toLowerCase(),
+          pnl: parseFloat(bot.pnl_24h || bot.pnl || 0),
+          change: parseFloat(bot.pnl_24h_percent || bot.change_percent || 0),
+          totalPnl: parseFloat(bot.total_pnl || bot.cumulative_pnl || 0),
+          totalChange: parseFloat(bot.total_pnl_percent || bot.cumulative_percent || 0),
+          algo_id: bot.algo_id || bot.order_id
+        }));
       } catch (error) {
-        console.error('Error fetching market data:', error);
+        console.error('❌ Error fetching bot data:', error);
         return null;
       }
     }
 
     async function fetchRealSummaryData() {
       try {
-        // Fetch daily PnL summary
-        const today = new Date().toISOString().split('T')[0];
-        const { data: dailyPnl, error: dailyError } = await supabase
-          .from('pnl_daily')
-          .select('*')
-          .eq('date', today)
-          .single();
-
-        if (dailyError && dailyError.code !== 'PGRST116') throw dailyError;
+        console.log('📡 Fetching summary data from Supabase...');
 
         // Fetch all trades for cumulative totals
         const { data: trades, error: tradesError } = await supabase
           .from('trades')
-          .select('realized_pnl')
-          .not('realized_pnl', 'is', null);
+          .select('*');
 
-        if (tradesError) throw tradesError;
+        if (tradesError) {
+          console.error('❌ Trades fetch error:', tradesError);
+        } else {
+          console.log('✅ Fetched trades:', trades?.length || 0, 'records');
+        }
 
-        const totalCumulativePnl = trades ? trades.reduce((sum, t) => sum + (parseFloat(t.realized_pnl) || 0), 0) : 0;
+        // Calculate totals from trades
+        const totalCumulativePnl = trades ? trades.reduce((sum, t) => {
+          const pnl = parseFloat(t.realized_pnl || t.pnl || 0);
+          return sum + pnl;
+        }, 0) : 0;
+
+        // Try to fetch today's daily summary
+        const today = new Date().toISOString().split('T')[0];
+        const { data: dailyData } = await supabase
+          .from('pnl_daily')
+          .select('*')
+          .eq('date', today)
+          .maybeSingle();
+
+        console.log('✅ Daily summary:', dailyData);
 
         return {
-          matchedAmount: dailyPnl?.matched_orders_pnl || 0,
-          matchedOrders: dailyPnl?.matched_orders_count || 0,
-          lossAmount: Math.abs(dailyPnl?.loss_orders_pnl || 0),
-          lossOrders: dailyPnl?.loss_orders_count || 0,
-          netProfit24h: dailyPnl?.total_pnl || 0,
-          netProfit24hPercent: dailyPnl?.pnl_percent || 0,
+          matchedAmount: dailyData?.matched_pnl || dailyData?.pnl_matched || 0,
+          matchedOrders: dailyData?.matched_count || dailyData?.order_count || 0,
+          lossAmount: Math.abs(dailyData?.loss_pnl || dailyData?.loss || 0),
+          lossOrders: dailyData?.loss_count || 0,
+          netProfit24h: dailyData?.total_pnl || dailyData?.pnl || 0,
+          netProfit24hPercent: dailyData?.pnl_percent || 0,
           netProfitTotal: totalCumulativePnl,
-          netProfitTotalPercent: totalCumulativePnl > 0 ? 10.5 : 0 // Would calculate properly with capital
+          netProfitTotalPercent: trades && totalCumulativePnl !== 0 ? (totalCumulativePnl / Math.abs(totalCumulativePnl)) * 10 : 0
         };
       } catch (error) {
-        console.error('Error fetching summary data:', error);
+        console.error('❌ Error fetching summary data:', error);
         return null;
       }
     }
