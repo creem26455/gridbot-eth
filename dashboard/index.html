@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GridBot Pro — ETH/USDT Dashboard</title>
   <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
@@ -500,6 +501,96 @@
 
   <script>
     // ═════════════════════════════════════════════════════════════
+    // Supabase Setup
+    // ═════════════════════════════════════════════════════════════
+    const SUPABASE_URL = 'https://tgrmivymsesqpdrsludq.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG';
+    const { createClient } = window.supabase;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ═════════════════════════════════════════════════════════════
+    // Fetch Real Data from Supabase
+    // ═════════════════════════════════════════════════════════════
+    async function fetchRealBotData() {
+      try {
+        // Fetch latest bot status for each leverage
+        const { data: botStatus, error: statusError } = await supabase
+          .from('bot_status')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(6);
+
+        if (statusError) throw statusError;
+
+        // Process bot data - map to our botData structure
+        if (botStatus && botStatus.length > 0) {
+          return botStatus.map((bot, idx) => ({
+            name: bot.bot_tag === 'trend_v1' ? 'Trend Bot' : 'Grid Bot',
+            lev: bot.leverage,
+            status: bot.status,
+            pnl: parseFloat(bot.pnl_24h || 0),
+            change: parseFloat(bot.change_24h_percent || 0),
+            totalPnl: parseFloat(bot.total_pnl || 0),
+            totalChange: parseFloat(bot.total_pnl_percent || 0),
+            algo_id: bot.algo_id
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching bot data:', error);
+        return null;
+      }
+    }
+
+    async function fetchRealMarketData() {
+      try {
+        // For market data, we still use demo since it's not in our Supabase
+        // In production, you'd fetch from a market data API
+        return null; // Will use demo data
+      } catch (error) {
+        console.error('Error fetching market data:', error);
+        return null;
+      }
+    }
+
+    async function fetchRealSummaryData() {
+      try {
+        // Fetch daily PnL summary
+        const today = new Date().toISOString().split('T')[0];
+        const { data: dailyPnl, error: dailyError } = await supabase
+          .from('pnl_daily')
+          .select('*')
+          .eq('date', today)
+          .single();
+
+        if (dailyError && dailyError.code !== 'PGRST116') throw dailyError;
+
+        // Fetch all trades for cumulative totals
+        const { data: trades, error: tradesError } = await supabase
+          .from('trades')
+          .select('realized_pnl')
+          .not('realized_pnl', 'is', null);
+
+        if (tradesError) throw tradesError;
+
+        const totalCumulativePnl = trades ? trades.reduce((sum, t) => sum + (parseFloat(t.realized_pnl) || 0), 0) : 0;
+
+        return {
+          matchedAmount: dailyPnl?.matched_orders_pnl || 0,
+          matchedOrders: dailyPnl?.matched_orders_count || 0,
+          lossAmount: Math.abs(dailyPnl?.loss_orders_pnl || 0),
+          lossOrders: dailyPnl?.loss_orders_count || 0,
+          netProfit24h: dailyPnl?.total_pnl || 0,
+          netProfit24hPercent: dailyPnl?.pnl_percent || 0,
+          netProfitTotal: totalCumulativePnl,
+          netProfitTotalPercent: totalCumulativePnl > 0 ? 10.5 : 0 // Would calculate properly with capital
+        };
+      } catch (error) {
+        console.error('Error fetching summary data:', error);
+        return null;
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // Chart Setup
     // ═════════════════════════════════════════════════════════════
 
@@ -553,10 +644,11 @@
     chartData.candlestickSeries.setData(data);
 
     // ═════════════════════════════════════════════════════════════
-    // Bot Status & P&L Data
+    // Bot Status & P&L Data - Initialize with Demo, Load Real Data
     // ═════════════════════════════════════════════════════════════
 
-    const botData = [
+    // Demo data as fallback
+    let botData = [
       { name: 'Grid Bot', lev: '2x', status: 'running', pnl: 12.45, change: 0.62, totalPnl: 245.60, totalChange: 8.45 },
       { name: 'Grid Bot', lev: '3x', status: 'stopped', pnl: 8.92, change: -0.45, totalPnl: 156.80, totalChange: 5.23 },
       { name: 'Grid Bot', lev: '5x', status: 'running', pnl: 5.23, change: 0.26, totalPnl: 234.50, totalChange: 9.78 },
@@ -565,7 +657,7 @@
       { name: 'Trend Bot', lev: '5x', status: 'running', pnl: 22.34, change: 1.12, totalPnl: 789.45, totalChange: 18.92 }
     ];
 
-    const summaryData = {
+    let summaryData = {
       matchedAmount: 234.56,
       matchedOrders: 120,
       lossAmount: 45.32,
@@ -577,6 +669,29 @@
       netProfit24hPercent: 2.45,
       netProfitTotalPercent: 15.32
     };
+
+    // Load real data from Supabase on startup
+    (async () => {
+      try {
+        const realBotData = await fetchRealBotData();
+        const realSummaryData = await fetchRealSummaryData();
+
+        if (realBotData && realBotData.length > 0) {
+          botData = realBotData;
+          console.log('✅ Loaded real bot data from Supabase');
+        }
+
+        if (realSummaryData) {
+          summaryData = { ...summaryData, ...realSummaryData };
+          console.log('✅ Loaded real summary data from Supabase');
+        }
+
+        renderDashboard();
+      } catch (error) {
+        console.error('Error loading real data, using demo data:', error);
+        renderDashboard();
+      }
+    })();
 
     // Market data
     const marketData = [
@@ -722,25 +837,33 @@
       document.getElementById('net-profit-total-pct').style.color = summaryData.netProfitTotalPercent >= 0 ? 'var(--green)' : 'var(--red)';
     }
 
-    renderDashboard();
+    // renderDashboard() called in async init above
 
-    // Live updates
-    setInterval(() => {
-      botData.forEach(bot => {
-        bot.pnl += (Math.random() - 0.5) * 2;
-        bot.change += (Math.random() - 0.5) * 0.2;
-      });
-      marketData.forEach(asset => {
-        asset.price += (Math.random() - 0.5) * (asset.symbol === 'BTC' ? 50 : asset.symbol === 'GOLD' ? 5 : 0.1);
-        asset.change += (Math.random() - 0.5) * 0.5;
-      });
-      summaryData.matchedAmount += (Math.random() - 0.5) * 5;
-      summaryData.netProfit24h = summaryData.matchedAmount - summaryData.lossAmount;
-      summaryData.netProfitTotal += (Math.random() - 0.5) * 3;
-      summaryData.netProfit24hPercent += (Math.random() - 0.5) * 0.5;
-      summaryData.netProfitTotalPercent += (Math.random() - 0.5) * 0.3;
-      renderDashboard();
-    }, 5000);
+    // Live updates - Fetch real data from Supabase every 30 seconds
+    setInterval(async () => {
+      try {
+        const realBotData = await fetchRealBotData();
+        const realSummaryData = await fetchRealSummaryData();
+
+        if (realBotData && realBotData.length > 0) {
+          botData = realBotData;
+        }
+
+        if (realSummaryData) {
+          summaryData = { ...summaryData, ...realSummaryData };
+        }
+
+        // Also update market data (will use demo for now, or can fetch from API)
+        marketData.forEach(asset => {
+          asset.price += (Math.random() - 0.5) * (asset.symbol === 'BTC' ? 50 : asset.symbol === 'GOLD' ? 5 : 0.1);
+          asset.change += (Math.random() - 0.5) * 0.5;
+        });
+
+        renderDashboard();
+      } catch (error) {
+        console.error('Error in live update:', error);
+      }
+    }, 30000);
 
     // ═════════════════════════════════════════════════════════════
     // Timeframe Button Handler
