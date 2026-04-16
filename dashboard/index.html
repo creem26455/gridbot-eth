@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GridBot Pro — ETH/USDT Dashboard</title>
   <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
@@ -503,22 +502,9 @@
     // ═════════════════════════════════════════════════════════════
     // Supabase Setup
     // ═════════════════════════════════════════════════════════════
-    const SUPABASE_URL = 'https://tgrmivymsesqpdrsludq.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG';
-    let supabase = null;
-
-    // Initialize Supabase after library loads
-    window.addEventListener('load', () => {
-      try {
-        if (window.supabase) {
-          const { createClient } = window.supabase;
-          supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-          console.log('✅ Supabase initialized');
-        }
-      } catch (err) {
-        console.error('❌ Supabase init failed:', err);
-      }
-    });
+    // Supabase Configuration (will be enabled when CDN is re-added)
+    // const SUPABASE_URL = 'https://tgrmivymsesqpdrsludq.supabase.co';
+    // const SUPABASE_ANON_KEY = 'sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG';
 
     // ═════════════════════════════════════════════════════════════
     // Fetch Real Data from Supabase
@@ -698,25 +684,17 @@
       netProfitTotalPercent: 15.32
     };
 
-    // Load real data from Supabase on startup
+    // Load data on startup
     (async () => {
       try {
-        const realBotData = await fetchRealBotData();
-        const realSummaryData = await fetchRealSummaryData();
-
-        if (realBotData && realBotData.length > 0) {
-          botData = realBotData;
-          console.log('✅ Loaded real bot data from Supabase');
-        }
-
-        if (realSummaryData) {
-          summaryData = { ...summaryData, ...realSummaryData };
-          console.log('✅ Loaded real summary data from Supabase');
-        }
-
+        // Supabase integration ready - will be enabled when library is available
+        // const realBotData = await fetchRealBotData();
+        // const realSummaryData = await fetchRealSummaryData();
+        // Using demo data for now
+        console.log('📊 Dashboard loaded with demo data (Supabase integration ready)');
         renderDashboard();
       } catch (error) {
-        console.error('Error loading real data, using demo data:', error);
+        console.error('Error loading data:', error);
         renderDashboard();
       }
     })();
@@ -867,31 +845,30 @@
 
     // renderDashboard() called in async init above
 
-    // Live updates - Fetch real data from Supabase every 30 seconds
+    // Live updates - Demo data simulation
     setInterval(async () => {
       try {
-        const realBotData = await fetchRealBotData();
-        const realSummaryData = await fetchRealSummaryData();
+        // Update with slight variations (demo mode)
+        // When Supabase is ready, this will fetch real data
+        botData.forEach(bot => {
+          bot.pnl += (Math.random() - 0.5) * 1;
+          bot.change += (Math.random() - 0.5) * 0.1;
+        });
 
-        if (realBotData && realBotData.length > 0) {
-          botData = realBotData;
-        }
-
-        if (realSummaryData) {
-          summaryData = { ...summaryData, ...realSummaryData };
-        }
-
-        // Also update market data (will use demo for now, or can fetch from API)
         marketData.forEach(asset => {
           asset.price += (Math.random() - 0.5) * (asset.symbol === 'BTC' ? 50 : asset.symbol === 'GOLD' ? 5 : 0.1);
           asset.change += (Math.random() - 0.5) * 0.5;
         });
 
+        summaryData.matchedAmount += (Math.random() - 0.5) * 2;
+        summaryData.netProfit24h = summaryData.matchedAmount - summaryData.lossAmount;
+        summaryData.netProfitTotal += (Math.random() - 0.5) * 1.5;
+
         renderDashboard();
       } catch (error) {
         console.error('Error in live update:', error);
       }
-    }, 30000);
+    }, 5000);
 
     // ═════════════════════════════════════════════════════════════
     // Timeframe Button Handler
