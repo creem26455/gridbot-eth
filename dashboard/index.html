@@ -501,12 +501,25 @@
 
   <script>
     // ═════════════════════════════════════════════════════════════
-    // Supabase Setup
+    // Supabase Setup (lazy initialization)
     // ═════════════════════════════════════════════════════════════
     // Supabase Configuration
     const SUPABASE_URL = 'https://tgrmivymsesqpdrsludq.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabase = null;
+
+    // Initialize Supabase client lazily when needed
+    function getSupabaseClient() {
+      if (!supabase && window.supabase) {
+        try {
+          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          console.log('✅ Supabase client initialized');
+        } catch (error) {
+          console.error('❌ Failed to initialize Supabase:', error);
+        }
+      }
+      return supabase;
+    }
 
     // ═════════════════════════════════════════════════════════════
     // Fetch Real Data from Supabase
@@ -515,8 +528,14 @@
       try {
         console.log('📡 Fetching bot data from Supabase...');
 
+        const client = getSupabaseClient();
+        if (!client) {
+          console.warn('⚠️ Supabase client not available');
+          return null;
+        }
+
         // Fetch latest bot status - get all and process
-        const { data: botStatus, error: statusError } = await supabase
+        const { data: botStatus, error: statusError } = await client
           .from('bot_status')
           .select('*')
           .order('updated_at', { ascending: false });
@@ -569,8 +588,14 @@
       try {
         console.log('📡 Fetching summary data from Supabase...');
 
+        const client = getSupabaseClient();
+        if (!client) {
+          console.warn('⚠️ Supabase client not available');
+          return null;
+        }
+
         // Fetch all trades for cumulative totals
-        const { data: trades, error: tradesError } = await supabase
+        const { data: trades, error: tradesError } = await client
           .from('trades')
           .select('*');
 
@@ -595,7 +620,7 @@
 
         // Try to fetch today's daily summary
         const today = new Date().toISOString().split('T')[0];
-        const { data: dailyDataArray } = await supabase
+        const { data: dailyDataArray } = await client
           .from('pnl_daily')
           .select('*')
           .eq('date', today);
