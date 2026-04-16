@@ -684,22 +684,7 @@
       netProfitTotalPercent: 15.32
     };
 
-    // Load data on startup
-    (async () => {
-      try {
-        // Supabase integration ready - will be enabled when library is available
-        // const realBotData = await fetchRealBotData();
-        // const realSummaryData = await fetchRealSummaryData();
-        // Using demo data for now
-        console.log('📊 Dashboard loaded with demo data (Supabase integration ready)');
-        renderDashboard();
-      } catch (error) {
-        console.error('Error loading data:', error);
-        renderDashboard();
-      }
-    })();
-
-    // Market data
+    // Market data - MUST be before renderDashboard() call
     const marketData = [
       { symbol: 'BTC', name: 'Bitcoin', price: 42850.25, change: 2.45 },
       { symbol: 'ETH', name: 'Ethereum', price: 2245.80, change: -1.32 },
@@ -714,6 +699,17 @@
       { symbol: 'GOLD', name: 'Gold (oz)', price: 2385.50, change: 0.45 },
       { symbol: 'OIL', name: 'Crude Oil (bbl)', price: 82.45, change: -1.23 }
     ];
+
+    // Load data on startup (after all data is initialized)
+    (async () => {
+      try {
+        console.log('📊 Dashboard loaded with demo data (Supabase integration ready)');
+        renderDashboard();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        renderDashboard();
+      }
+    })();
 
     function renderDashboard() {
       // Bot list
