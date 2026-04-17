@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GridBot Pro — ETH/USDT Dashboard</title>
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg-dark: #131722;
+      --bg-card: #1e2232;
+      --bg-hover: #2a3242;
+      --border: rgba(47, 58, 77, 0.3);
+      --text-primary: #d1d5db;
+      --text-secondary: #8b92a9;
+      --accent: #3861fb;
+      --green: #26a69a;
+      --red: #ef5350;
+      --yellow: #f9a825;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    .main-layout {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+      gap: 12px;
+      padding: 16px;
+      flex-direction: column;
+    }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* TOP ROW — Left sidebar + Main chart */
+    /* ═══════════════════════════════════════════════════════════ */
+    .top-row {
+      flex: 1;
+      display: flex;
+      gap: 12px;
+      min-height: 0;
+      margin-bottom: 12px;
+    }
+
+    /* LEFT SIDEBAR */
+    .left-sidebar {
+      width: 320px;
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-dark));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sidebar-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .bot-item {
+      padding: 12px;
+      background: rgba(42, 50, 66, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .bot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bot-name {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+    }
+
+    .bot-lever {
+      font-size: 0.85rem;
+      background: var(--accent);
+      color: white;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+
+    .bot-status {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .bot-change {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+
+    .change-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .change-value {
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+    }
+
+    .change-up { color: var(--green); }
+    .change-down { color: var(--red); }
+
+    /* MAIN CHART */
+    .chart-section {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .chart-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chart-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .grid-badge {
+      background: var(--accent);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .timeframe-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tf-btn {
+      padding: 5px 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+
+    .tf-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .tf-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .chart-wrapper {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* BOTTOM ROW — Summary boxes only */
+    /* ═══════════════════════════════════════════════════════════ */
+    .bottom-row {
+      height: 160px;
+      display: flex;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .summary-boxes {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .summary-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .summary-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .summary-amount {
+      font-size: 1.8rem;
+      font-weight: 800;
+      font-family: 'Courier New', monospace;
+      letter-spacing: -0.02em;
+    }
+
+    .summary-count {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .amount-profit { color: var(--green); }
+    .amount-loss { color: var(--red); }
+
+    /* MARKET WATCH */
+    .pnl-section {
+      width: 420px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .table-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .table-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 0.9rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: var(--bg-hover);
+      color: var(--accent);
+      padding: 12px 10px;
+      text-align: left;
+      font-weight: 800;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--accent);
+      position: sticky;
+      top: 0;
+      letter-spacing: 0.08em;
+    }
+
+    td {
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(56, 97, 251, 0.2);
+      font-family: 'Courier New', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: rgba(56, 97, 251, 0.1);
+    }
+
+    .bot-col {
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .pnl-positive {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .pnl-negative {
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .summary-row {
+      background: var(--bg-hover);
+      font-weight: 700;
+      border-top: 2px solid var(--border);
+      margin-top: 4px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* Scrollbar */
+    /* ═══════════════════════════════════════════════════════════ */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="main-layout">
+    <!-- TOP ROW: Sidebar + Chart + Market Watch -->
+    <div class="top-row">
+      <!-- LEFT: Bot Status + Grid Performance -->
+      <div class="left-sidebar">
+        <div class="sidebar-title">📊 Bot Status</div>
+        <div id="bot-list"></div>
+
+        <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
+          <div class="sidebar-title" style="margin-bottom: 8px; border: none; padding-bottom: 0;">📈 Grid Performance</div>
+          <div id="grid-performance" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div style="background: rgba(42,50,66,0.5); padding: 8px; border-radius: 4px;">
+                <div style="font-weight: 700; color: var(--text-primary);">Grid 2x</div>
+                <div style="margin-top: 2px;">
+                  <span id="grid-2x-pnl" style="color: var(--green); font-weight: 700;">+$0.00</span>
+                  <span id="grid-2x-pct" style="color: var(--green); font-size: 0.75rem;"> +0.00%</span>
+                </div>
+              </div>
+              <div style="background: rgba(42,50,66,0.5); padding: 8px; border-radius: 4px;">
+                <div style="font-weight: 700; color: var(--text-primary);">Grid 3x</div>
+                <div style="margin-top: 2px;">
+                  <span id="grid-3x-pnl" style="color: var(--green); font-weight: 700;">+$0.00</span>
+                  <span id="grid-3x-pct" style="color: var(--green); font-size: 0.75rem;"> +0.00%</span>
+                </div>
+              </div>
+              <div style="background: rgba(42,50,66,0.5); padding: 8px; border-radius: 4px;">
+                <div style="font-weight: 700; color: var(--text-primary);">Grid 5x</div>
+                <div style="margin-top: 2px;">
+                  <span id="grid-5x-pnl" style="color: var(--green); font-weight: 700;">+$0.00</span>
+                  <span id="grid-5x-pct" style="color: var(--green); font-size: 0.75rem;"> +0.00%</span>
+                </div>
+              </div>
+              <div style="background: rgba(42,50,66,0.5); padding: 8px; border-radius: 4px;">
+                <div style="font-weight: 700; color: var(--text-primary);">Trend 2x</div>
+                <div style="margin-top: 2px;">
+                  <span id="trend-2x-pnl" style="color: var(--green); font-weight: 700;">+$0.00</span>
+                  <span id="trend-2x-pct" style="color: var(--green); font-size: 0.75rem;"> +0.00%</span>
+                </div>
+              </div>
+              <div style="background: rgba(42,50,66,0.5); padding: 8px; border-radius: 4px;">
+                <div style="font-weight: 700; color: var(--text-primary);">Trend 3x</div>
+                <div style="margin-top: 2px;">
+                  <span id="trend-3x-pnl" style="color: var(--green); font-weight: 700;">-</span>
+                </div>
+              </div>
+              <div style="background: rgba(42,50,66,0.5); padding: 8px; border-radius: 4px;">
+                <div style="font-weight: 700; color: var(--text-primary);">Trend 5x</div>
+                <div style="margin-top: 2px;">
+                  <span id="trend-5x-pnl" style="color: var(--green); font-weight: 700;">+$0.00</span>
+                  <span id="trend-5x-pct" style="color: var(--green); font-size: 0.75rem;"> +0.00%</span>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: 4px; padding: 6px 0; font-size: 0.75rem; color: var(--text-secondary);">
+              <div>24h Total: <span id="perf-24h" style="color: var(--green); font-weight: 700;">+$0.00</span> <span id="perf-24h-pct" style="color: var(--green);">+0.00%</span></div>
+              <div style="margin-top: 2px;">All Time: <span id="perf-all" style="color: var(--green); font-weight: 700;">+$0.00</span> <span id="perf-all-pct" style="color: var(--green);">+0.00%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER: Main Chart -->
+      <div class="chart-section">
+        <div class="chart-header">
+          <div class="chart-title">📈 ETH/USDT Grid Chart</div>
+          <div class="chart-controls">
+            <div class="grid-badge" id="grid-count">78 Grids Active</div>
+            <div class="timeframe-buttons">
+              <button class="tf-btn active" data-tf="5m">5m</button>
+              <button class="tf-btn" data-tf="15m">15m</button>
+              <button class="tf-btn" data-tf="30m">30m</button>
+              <button class="tf-btn" data-tf="1d">1D</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrapper" id="main-chart"></div>
+      </div>
+
+      <!-- RIGHT: Market Watch -->
+      <div class="pnl-section">
+        <div class="table-title">📊 Market Watch</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Price</th>
+                <th>Change</th>
+              </tr>
+            </thead>
+            <tbody id="market-body">
+              <!-- Market data inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW: Summary Boxes -->
+    <div class="bottom-row">
+      <!-- Summary Boxes -->
+      <div class="summary-boxes">
+        <div class="summary-box">
+          <div class="summary-label">✅ Matched Orders</div>
+          <div class="summary-amount amount-profit" id="matched-amount">+$234.56</div>
+          <div class="summary-count" id="matched-count">120 orders</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">❌ Loss Orders</div>
+          <div class="summary-amount amount-loss" id="loss-amount">-$45.32</div>
+          <div class="summary-count" id="loss-count">23 orders</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">Net Profit</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">24h</div>
+              <div style="display: flex; gap: 8px; align-items: baseline;">
+                <span class="summary-amount amount-profit" id="net-profit-24h">+$189.24</span>
+                <span id="net-profit-24h-pct" style="font-size: 0.9rem; color: var(--green);">+2.45%</span>
+              </div>
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 8px;">
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">Total</div>
+              <div style="display: flex; gap: 8px; align-items: baseline;">
+                <span class="summary-amount amount-profit" id="net-profit-total">+$1,234.56</span>
+                <span id="net-profit-total-pct" style="font-size: 0.9rem; color: var(--green);">+15.32%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═════════════════════════════════════════════════════════════
+    // Supabase Setup (lazy initialization)
+    // ═════════════════════════════════════════════════════════════
+    // Supabase Configuration
+    const SUPABASE_URL = 'https://tgrmivymsesqpdrsludq.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_HbFJArPGC-NSRqUYojLXlQ_tloRw4aG';
+    let gridSupabase = null;
+
+    // Initialize Supabase client lazily when needed
+    function getSupabaseClient() {
+      if (!gridSupabase && window.supabase) {
+        try {
+          gridSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          console.log('✅ Supabase client initialized');
+        } catch (error) {
+          console.error('❌ Failed to initialize Supabase:', error);
+        }
+      }
+      return gridSupabase;
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Fetch Real Data from Supabase
+    // ═════════════════════════════════════════════════════════════
+    async function fetchRealBotData() {
+      try {
+        console.log('📡 Fetching bot data from Supabase...');
+
+        const client = getSupabaseClient();
+        if (!client) {
+          console.warn('⚠️ Supabase client not available');
+          return null;
+        }
+
+        // Fetch latest bot status - get all and process
+        const { data: botStatus, error: statusError } = await client
+          .from('bot_status')
+          .select('*')
+          .order('updated_at', { ascending: false });
+
+        if (statusError) {
+          console.error('❌ Supabase error:', statusError);
+          return null;
+        }
+
+        if (!botStatus || botStatus.length === 0) {
+          console.warn('⚠️ No bot status data found in Supabase');
+          return null;
+        }
+
+        console.log('✅ Fetched bot data:', botStatus);
+
+        // Group by leverage and bot_tag to get latest of each
+        const botMap = {};
+        botStatus.forEach(bot => {
+          const key = `${bot.leverage}_${bot.bot_tag || 'grid'}`;
+          if (!botMap[key] || new Date(bot.updated_at) > new Date(botMap[key].updated_at)) {
+            botMap[key] = bot;
+          }
+        });
+
+        // Convert to array and map to our botData structure
+        return Object.values(botMap).map((bot) => {
+          // Determine if 24h profit exists (try to get from profit_loss field or use total_profit)
+          const pnl24h = bot.profit_loss !== null ? parseFloat(bot.profit_loss) : parseFloat(bot.total_profit || 0);
+          const totalPnl = parseFloat(bot.total_profit || 0);
+
+          return {
+            name: (bot.bot_tag === 'trend_v1' || bot.bot_tag?.includes('trend')) ? 'Trend Bot' : 'Grid Bot',
+            lev: String(bot.leverage || '').includes('x') ? bot.leverage : bot.leverage + 'x',
+            status: bot.is_running ? 'running' : 'stopped',
+            pnl: pnl24h,
+            change: totalPnl !== 0 ? ((pnl24h / Math.abs(totalPnl)) * 100) : 0,
+            totalPnl: totalPnl,
+            totalChange: totalPnl !== 0 ? ((totalPnl / Math.abs(totalPnl)) * 10) : 0,
+            algo_id: bot.bot_id_okx || bot.bot_id
+          };
+        });
+      } catch (error) {
+        console.error('❌ Error fetching bot data:', error);
+        return null;
+      }
+    }
+
+    async function fetchRealSummaryData() {
+      try {
+        console.log('📡 Fetching summary data from Supabase...');
+
+        const client = getSupabaseClient();
+        if (!client) {
+          console.warn('⚠️ Supabase client not available');
+          return null;
+        }
+
+        // Fetch all trades for cumulative totals
+        const { data: trades, error: tradesError } = await client
+          .from('trades')
+          .select('*');
+
+        if (tradesError) {
+          console.error('❌ Trades fetch error:', tradesError);
+        } else {
+          console.log('✅ Fetched trades:', trades?.length || 0, 'records');
+        }
+
+        // Calculate totals from trades using net_profit column
+        const totalCumulativePnl = trades ? trades.reduce((sum, t) => {
+          const pnl = parseFloat(t.net_profit || 0);
+          return sum + pnl;
+        }, 0) : 0;
+
+        // Separate profitable and loss trades
+        const profitableTrades = trades ? trades.filter(t => parseFloat(t.net_profit || 0) > 0) : [];
+        const lossTrades = trades ? trades.filter(t => parseFloat(t.net_profit || 0) < 0) : [];
+
+        const totalProfit = profitableTrades.reduce((sum, t) => sum + parseFloat(t.net_profit || 0), 0);
+        const totalLoss = Math.abs(lossTrades.reduce((sum, t) => sum + parseFloat(t.net_profit || 0), 0));
+
+        // Try to fetch today's daily summary
+        const today = new Date().toISOString().split('T')[0];
+        const { data: dailyDataArray } = await client
+          .from('pnl_daily')
+          .select('*')
+          .eq('date', today);
+
+        // Sum up today's PnL from all bots
+        const netProfit24h = dailyDataArray ? dailyDataArray.reduce((sum, d) => sum + parseFloat(d.pnl || 0), 0) : 0;
+        const tradeCount24h = dailyDataArray ? dailyDataArray.reduce((sum, d) => sum + parseInt(d.trade_count || 0), 0) : 0;
+
+        console.log('✅ Daily summary:', { netProfit24h, tradeCount24h, totalCumulativePnl });
+
+        return {
+          matchedAmount: totalProfit,
+          matchedOrders: profitableTrades.length,
+          lossAmount: totalLoss,
+          lossOrders: lossTrades.length,
+          netProfit24h: netProfit24h,
+          netProfit24hPercent: totalCumulativePnl !== 0 ? (netProfit24h / Math.abs(totalCumulativePnl)) * 100 : 0,
+          netProfitTotal: totalCumulativePnl,
+          netProfitTotalPercent: totalCumulativePnl !== 0 ? 15.32 : 0  // Placeholder, would need initial capital for real calculation
+        };
+      } catch (error) {
+        console.error('❌ Error fetching summary data:', error);
+        return null;
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Chart Setup
+    // ═════════════════════════════════════════════════════════════
+
+    function createChart(elementId) {
+      const element = document.getElementById(elementId);
+      const chart = LightweightCharts.createChart(element, {
+        layout: {
+          background: { color: '#131722' },
+          textColor: '#d1d5db',
+          fontSize: 12,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI"'
+        },
+        grid: {
+          vertLines: { color: 'rgba(42, 50, 66, 0.8)' },
+          horzLines: { color: 'rgba(42, 50, 66, 0.8)' }
+        }
+      });
+
+      const candlestickSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderVisible: false,
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350'
+      });
+
+      chart.timeScale().fitContent();
+      return { chart, candlestickSeries };
+    }
+
+    // Generate sample data
+    function generateCandleData() {
+      const data = [];
+      let price = 2000;
+      const now = Math.floor(Date.now() / 1000);
+
+      for (let i = 100; i > 0; i--) {
+        const time = now - (i * 300);
+        const open = price;
+        price += (Math.random() - 0.5) * 10;
+        const high = Math.max(open, price) + Math.random() * 5;
+        const low = Math.min(open, price) - Math.random() * 5;
+        const close = price;
+        data.push({ time, open, high, low, close });
+      }
+      return data;
+    }
+
+    const chartData = createChart('main-chart');
+    const data = generateCandleData();
+    chartData.candlestickSeries.setData(data);
+
+    // ═════════════════════════════════════════════════════════════
+    // Bot Status & P&L Data - Initialize with Demo, Load Real Data
+    // ═════════════════════════════════════════════════════════════
+
+    // Demo data as fallback
+    let botData = [
+      { name: 'Grid Bot', lev: '2x', status: 'running', pnl: 12.45, change: 0.62, totalPnl: 245.60, totalChange: 8.45 },
+      { name: 'Grid Bot', lev: '3x', status: 'stopped', pnl: 8.92, change: -0.45, totalPnl: 156.80, totalChange: 5.23 },
+      { name: 'Grid Bot', lev: '5x', status: 'running', pnl: 5.23, change: 0.26, totalPnl: 234.50, totalChange: 9.78 },
+      { name: 'Trend Bot', lev: '2x', status: 'running', pnl: 15.67, change: 0.78, totalPnl: 567.30, totalChange: 12.34 },
+      { name: 'Trend Bot', lev: '3x', status: 'unknown', pnl: 0, change: 0, totalPnl: 0, totalChange: 0 },
+      { name: 'Trend Bot', lev: '5x', status: 'running', pnl: 22.34, change: 1.12, totalPnl: 789.45, totalChange: 18.92 }
+    ];
+
+    let summaryData = {
+      matchedAmount: 234.56,
+      matchedOrders: 120,
+      lossAmount: 45.32,
+      lossOrders: 23,
+      activeGrids: 4,
+      totalGrids: 6,
+      netProfit24h: 189.24,
+      netProfitTotal: 1234.56,
+      netProfit24hPercent: 2.45,
+      netProfitTotalPercent: 15.32
+    };
+
+    // Market data - MUST be before renderDashboard() call
+    const marketData = [
+      { symbol: 'BTC', name: 'Bitcoin', price: 42850.25, change: 2.45 },
+      { symbol: 'ETH', name: 'Ethereum', price: 2245.80, change: -1.32 },
+      { symbol: 'BNB', name: 'Binance', price: 618.50, change: 1.85 },
+      { symbol: 'SOL', name: 'Solana', price: 142.30, change: 3.21 },
+      { symbol: 'XRP', name: 'Ripple', price: 2.48, change: -0.87 },
+      { symbol: 'ADA', name: 'Cardano', price: 0.98, change: 1.23 },
+      { symbol: 'DOGE', name: 'Dogecoin', price: 0.395, change: 2.15 },
+      { symbol: 'LINK', name: 'Chainlink', price: 22.45, change: 0.65 },
+      { symbol: 'MATIC', name: 'Polygon', price: 1.08, change: -2.34 },
+      { symbol: 'AVAX', name: 'Avalanche', price: 38.92, change: 1.78 },
+      { symbol: 'GOLD', name: 'Gold (oz)', price: 2385.50, change: 0.45 },
+      { symbol: 'OIL', name: 'Crude Oil (bbl)', price: 82.45, change: -1.23 }
+    ];
+
+    // Load data on startup (after all data is initialized)
+    (async () => {
+      try {
+        console.log('📊 Dashboard initializing... attempting to fetch real data from Supabase');
+
+        // Try to fetch real bot data
+        const realBotData = await fetchRealBotData();
+        if (realBotData && realBotData.length > 0) {
+          botData = realBotData;
+          console.log('✅ Real bot data loaded from Supabase:', botData);
+        } else {
+          console.warn('⚠️ No real bot data, using demo data');
+        }
+
+        // Try to fetch real summary data
+        const realSummaryData = await fetchRealSummaryData();
+        if (realSummaryData) {
+          summaryData = { ...summaryData, ...realSummaryData };
+          console.log('✅ Real summary data loaded from Supabase:', summaryData);
+        } else {
+          console.warn('⚠️ No real summary data, using demo data');
+        }
+
+        renderDashboard();
+      } catch (error) {
+        console.error('❌ Error during initialization:', error);
+        console.log('⚠️ Falling back to demo data');
+        renderDashboard();
+      }
+    })();
+
+    function renderDashboard() {
+      // Bot list
+      const botList = document.getElementById('bot-list');
+      botList.innerHTML = '';
+
+      let activeCount = 0;
+      let totalPnL = 0;
+
+      botData.forEach(bot => {
+        if (bot.status === 'running') activeCount++;
+        totalPnL += bot.pnl;
+
+        const statusIcon = bot.status === 'running' ? '✅' :
+                          bot.status === 'stopped' ? '❌' : '⚠️';
+        const changeClass = bot.change > 0 ? 'change-up' : bot.change < 0 ? 'change-down' : '';
+        const changeSign = bot.change > 0 ? '+' : '';
+
+        const item = document.createElement('div');
+        item.className = 'bot-item';
+        item.innerHTML = `
+          <div class="bot-header">
+            <span class="bot-name">${bot.name}</span>
+            <span class="bot-lever">${bot.lev}</span>
+          </div>
+          <div class="bot-status">
+            <span>${statusIcon} ${bot.status.toUpperCase()}</span>
+          </div>
+          <div class="bot-change">
+            <span class="change-label">24h</span>
+            <span class="change-value ${changeClass}">${changeSign}${bot.change.toFixed(2)}%</span>
+          </div>
+        `;
+        botList.appendChild(item);
+      });
+
+      // Market Watch Table
+      const marketBody = document.getElementById('market-body');
+      marketBody.innerHTML = '';
+
+      marketData.forEach(asset => {
+        const changeClass = asset.change > 0 ? 'pnl-positive' : asset.change < 0 ? 'pnl-negative' : '';
+        const changeSign = asset.change > 0 ? '📈 +' : asset.change < 0 ? '📉 ' : '';
+
+        let priceStr = '';
+        if (asset.symbol === 'BTC' || asset.symbol === 'GOLD') {
+          priceStr = `$${asset.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        } else if (asset.symbol === 'OIL') {
+          priceStr = `$${asset.price.toFixed(2)}`;
+        } else if (asset.price < 1) {
+          priceStr = `$${asset.price.toFixed(4)}`;
+        } else {
+          priceStr = `$${asset.price.toFixed(2)}`;
+        }
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="bot-col">${asset.symbol}</td>
+          <td style="text-align: right; font-weight: 700;">${priceStr}</td>
+          <td class="${changeClass}" style="text-align: right; font-weight: 800;">${changeSign}${Math.abs(asset.change).toFixed(2)}%</td>
+        `;
+        marketBody.appendChild(row);
+      });
+
+      // Summary boxes
+      document.getElementById('matched-amount').textContent = `+$${summaryData.matchedAmount.toFixed(2)}`;
+      document.getElementById('matched-count').textContent = `${summaryData.matchedOrders} orders`;
+      document.getElementById('loss-amount').textContent = `-$${summaryData.lossAmount.toFixed(2)}`;
+      document.getElementById('loss-count').textContent = `${summaryData.lossOrders} orders`;
+
+      // Grid Performance
+      function updateGridDisplay(elementId, pnl, change) {
+        const pnlEl = document.getElementById(elementId + '-pnl');
+        const pctEl = document.getElementById(elementId + '-pct');
+        const isProfit = pnl >= 0;
+        const sign = isProfit ? '+' : '';
+        pnlEl.textContent = `${sign}$${Math.abs(pnl).toFixed(2)}`;
+        pnlEl.style.color = isProfit ? 'var(--green)' : 'var(--red)';
+        pctEl.textContent = `${sign}${change.toFixed(2)}%`;
+        pctEl.style.color = isProfit ? 'var(--green)' : 'var(--red)';
+      }
+
+      updateGridDisplay('grid-2x', botData[0].pnl, botData[0].change);
+      updateGridDisplay('grid-3x', botData[1].pnl, botData[1].change);
+      updateGridDisplay('grid-5x', botData[2].pnl, botData[2].change);
+      updateGridDisplay('trend-2x', botData[3].pnl, botData[3].change);
+
+      // Trend 3x - unknown status
+      const trend3xPnL = document.getElementById('trend-3x-pnl');
+      const trend3xPct = document.getElementById('trend-3x-pct');
+      trend3xPnL.textContent = '-';
+      trend3xPct.textContent = '-';
+
+      updateGridDisplay('trend-5x', botData[5].pnl, botData[5].change);
+
+      // Total grids P&L (24h)
+      const totalGridPnL = botData.reduce((sum, bot) => sum + bot.pnl, 0);
+      const avgGridChange = botData.reduce((sum, bot) => sum + bot.change, 0) / botData.length;
+      const totalSign = totalGridPnL >= 0 ? '+' : '';
+      const totalChangeSign = avgGridChange >= 0 ? '+' : '';
+      document.getElementById('grids-total-pnl').textContent = `${totalSign}$${Math.abs(totalGridPnL).toFixed(2)}`;
+      document.getElementById('grids-total-pnl').style.color = totalGridPnL >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('grids-total-pct').textContent = `${totalChangeSign}${avgGridChange.toFixed(2)}%`;
+      document.getElementById('grids-total-pct').style.color = avgGridChange >= 0 ? 'var(--green)' : 'var(--red)';
+
+      // All-time total grids P&L
+      const totalGridPnLAllTime = botData.reduce((sum, bot) => sum + bot.totalPnl, 0);
+      const avgGridChangeAllTime = botData.filter(bot => bot.totalPnl !== 0).reduce((sum, bot) => sum + bot.totalChange, 0) / Math.max(botData.filter(bot => bot.totalPnl !== 0).length, 1);
+      const totalSignAllTime = totalGridPnLAllTime >= 0 ? '+' : '';
+      const totalChangeSignAllTime = avgGridChangeAllTime >= 0 ? '+' : '';
+      document.getElementById('grids-total-all-pnl').textContent = `${totalSignAllTime}$${Math.abs(totalGridPnLAllTime).toFixed(2)}`;
+      document.getElementById('grids-total-all-pnl').style.color = totalGridPnLAllTime >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('grids-total-all-pct').textContent = `${totalChangeSignAllTime}${avgGridChangeAllTime.toFixed(2)}%`;
+      document.getElementById('grids-total-all-pct').style.color = avgGridChangeAllTime >= 0 ? 'var(--green)' : 'var(--red)';
+
+      // Net Profit (24h and Total)
+      document.getElementById('net-profit-24h').textContent = `+$${summaryData.netProfit24h.toFixed(2)}`;
+      const pct24hClass = summaryData.netProfit24hPercent >= 0 ? 'change-up' : 'change-down';
+      const pct24hSign = summaryData.netProfit24hPercent >= 0 ? '+' : '';
+      document.getElementById('net-profit-24h-pct').textContent = `${pct24hSign}${summaryData.netProfit24hPercent.toFixed(2)}%`;
+      document.getElementById('net-profit-24h-pct').style.color = summaryData.netProfit24hPercent >= 0 ? 'var(--green)' : 'var(--red)';
+
+      document.getElementById('net-profit-total').textContent = `+$${summaryData.netProfitTotal.toFixed(2)}`;
+      const pctTotalClass = summaryData.netProfitTotalPercent >= 0 ? 'change-up' : 'change-down';
+      const pctTotalSign = summaryData.netProfitTotalPercent >= 0 ? '+' : '';
+      document.getElementById('net-profit-total-pct').textContent = `${pctTotalSign}${summaryData.netProfitTotalPercent.toFixed(2)}%`;
+      document.getElementById('net-profit-total-pct').style.color = summaryData.netProfitTotalPercent >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+
+    // renderDashboard() called in async init above
+
+    // Live updates - Try to fetch real data from Supabase every 30 seconds
+    setInterval(async () => {
+      try {
+        // Try to fetch real bot data
+        const realBotData = await fetchRealBotData();
+        if (realBotData && realBotData.length > 0) {
+          botData = realBotData;
+          console.log('✅ Updated bot data from Supabase');
+        }
+
+        // Try to fetch real summary data
+        const realSummaryData = await fetchRealSummaryData();
+        if (realSummaryData) {
+          summaryData = { ...summaryData, ...realSummaryData };
+          console.log('✅ Updated summary data from Supabase');
+        }
+
+        renderDashboard();
+      } catch (error) {
+        console.error('Error in live update:', error);
+      }
+    }, 30000); // Update every 30 seconds
+
+    // ═════════════════════════════════════════════════════════════
+    // Timeframe Button Handler
+    // ═════════════════════════════════════════════════════════════
+    function generateCandleDataForTimeframe(timeframe) {
+      const data = [];
+      let price = 2000;
+      const now = Math.floor(Date.now() / 1000);
+
+      let interval = 300; // 5 minutes default
+      let count = 100;
+
+      if (timeframe === '15m') {
+        interval = 900; // 15 minutes
+        count = 100;
+      } else if (timeframe === '30m') {
+        interval = 1800; // 30 minutes
+        count = 100;
+      } else if (timeframe === '1d') {
+        interval = 86400; // 1 day
+        count = 60;
+      }
+
+      for (let i = count; i > 0; i--) {
+        const time = now - (i * interval);
+        const open = price;
+        price += (Math.random() - 0.5) * 20;
+        const high = Math.max(open, price) + Math.random() * 10;
+        const low = Math.min(open, price) - Math.random() * 10;
+        const close = price;
+        data.push({ time, open, high, low, close });
+      }
+      return data;
+    }
+
+    // Timeframe button click handlers
+    document.querySelectorAll('.tf-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const timeframe = e.target.dataset.tf;
+
+        // Update active button
+        document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+
+        // Update chart data
+        const newData = generateCandleDataForTimeframe(timeframe);
+        chartData.candlestickSeries.setData(newData);
+        chartData.chart.timeScale().fitContent();
+      });
+    });
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      setTimeout(() => {
+        chartData.chart.applyOptions({ width: chartData.chart.parentElement.clientWidth });
+      }, 0);
+    });
+  </script>
+</body>
+</html>
