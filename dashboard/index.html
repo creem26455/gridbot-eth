@@ -607,18 +607,17 @@
           console.log('✅ Fetched trades:', trades?.length || 0, 'records');
         }
 
-        // Calculate totals from trades using net_profit column
-        const totalCumulativePnl = trades ? trades.reduce((sum, t) => {
-          const pnl = parseFloat(t.net_profit || 0);
-          return sum + pnl;
-        }, 0) : 0;
+        // Calculate totals from trades — actual column name is "profit" (not net_profit)
+        const getPnl = (t) => parseFloat(t.profit ?? t.net_profit ?? 0);
+
+        const totalCumulativePnl = trades ? trades.reduce((sum, t) => sum + getPnl(t), 0) : 0;
 
         // Separate profitable and loss trades
-        const profitableTrades = trades ? trades.filter(t => parseFloat(t.net_profit || 0) > 0) : [];
-        const lossTrades = trades ? trades.filter(t => parseFloat(t.net_profit || 0) < 0) : [];
+        const profitableTrades = trades ? trades.filter(t => getPnl(t) > 0) : [];
+        const lossTrades = trades ? trades.filter(t => getPnl(t) < 0) : [];
 
-        const totalProfit = profitableTrades.reduce((sum, t) => sum + parseFloat(t.net_profit || 0), 0);
-        const totalLoss = Math.abs(lossTrades.reduce((sum, t) => sum + parseFloat(t.net_profit || 0), 0));
+        const totalProfit = profitableTrades.reduce((sum, t) => sum + getPnl(t), 0);
+        const totalLoss = Math.abs(lossTrades.reduce((sum, t) => sum + getPnl(t), 0));
 
         // Try to fetch today's daily summary
         const today = new Date().toISOString().split('T')[0];
